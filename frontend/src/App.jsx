@@ -67,7 +67,7 @@ const defaultParams = {
 };
 
 const toolEndpointMap = {
-  brightness: '/enhancement/brightness-contrast',
+  brightness: '/test-endpoint',
   sharpen: '/enhancement/sharpen',
   blur: '/enhancement/blur',
   clahe: '/enhancement/histogram-equalization',
