@@ -1,10 +1,10 @@
 from fastapi import FastAPI, File, UploadFile, Form, Response
 from fastapi.middleware.cors import CORSMiddleware
-import cv2
-import numpy as np
+import os
 
 # Import our helpers from Step 1
 from utils.image_utils import read_image_as_array, encode_image_to_bytes
+from utils.enhancement import brightness_contrast
 
 app = FastAPI(title="Mini Photoshop API")
 
@@ -32,6 +32,28 @@ async def test_endpoint(
     
     # Return exactly what we got
     return Response(content=output_bytes, media_type="image/jpeg")
+
+@app.post("/api/enhancement/brightness-contrast")
+async def brightness_contrast_endpoint(
+    file: UploadFile = File(...),
+    brightness: int = Form(0),
+    contrast: float = Form(1.0)
+):
+    _, ext = os.path.splitext(file.filename)
+    if not ext:
+        ext = ".jpg"
+    
+    img = await read_image_as_array(file)
+    
+    hasil_manipulasi = brightness_contrast(img, brightness, contrast)
+    
+    output_bytes = encode_image_to_bytes(hasil_manipulasi, extension=ext)
+    
+    media_t = f"image/{ext.replace('.', '')}"
+    if media_t == "image/jpg":
+        media_t = "image/jpeg"
+    
+    return Response(content=output_bytes, media_type=media_t)
 
 # Basic root endpoint for testing
 @app.get("/")
