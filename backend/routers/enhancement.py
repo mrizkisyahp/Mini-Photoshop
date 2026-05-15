@@ -2,7 +2,7 @@ from fastapi import APIRouter, File, UploadFile, Form, Response
 import os
 
 from utils.image_utils import *
-from utils.enhancement import brightness_contrast
+from services.enhancement import brightness_contrast
 
 router = APIRouter()
 
