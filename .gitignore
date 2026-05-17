@@ -1,2 +1,11 @@
 frontend/node_modules/
 backend/venv/
+
+# Python bytecode & caches
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Environment variables
+.env
+.env.local
