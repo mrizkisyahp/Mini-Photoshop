@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from routers.enhancement import router as router_enhancement
+from routers.restoration import router as router_restoration
 
 app = FastAPI()
 
@@ -13,3 +14,4 @@ app.add_middleware(
 )
 
 app.include_router(router_enhancement)
+app.include_router(router_restoration)
