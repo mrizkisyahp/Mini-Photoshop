@@ -138,6 +138,10 @@ const defaultParams = {
   hsvHue: 0,
   hsvSaturation: 0,
   jpegQuality: 80,
+  // Enhancement / Blur
+  sharpenAmount: 2.0,
+  blurKsize: 11,
+  blurSigma: 3.0,
   // Restoration
   medianKsize: 3,
   noiseAmount: 0.05,
@@ -212,6 +216,10 @@ function buildBackendParams(toolId, params) {
         // Backend uses multiplier (1.0 = no change); slider is -100..100 (0 = no change)
         contrast: Number(((params.contrast + 100) / 100).toFixed(3)),
       };
+    case 'sharpen':
+      return { amount: params.sharpenAmount };
+    case 'blur':
+      return { ksize: params.blurKsize, sigma: params.blurSigma };
     default:
       return params;
   }
@@ -257,6 +265,23 @@ function PropertiesPanel({ tool, params, setParams, canvasRef, onApply, loading 
             {field('Brightness', <input type="range" min="-100" max="100" value={params.brightness} onChange={(e) => setParams(p => ({ ...p, brightness: Number(e.target.value) }))} className={rangeClass} />)}
             {field('Contrast', <input type="range" min="-100" max="100" value={params.contrast} onChange={(e) => setParams(p => ({ ...p, contrast: Number(e.target.value) }))} className={rangeClass} />)}
             {field('Gamma', <input type="number" min="0.1" max="5" step="0.1" value={params.gamma} onChange={(e) => setParams(p => ({ ...p, gamma: Number(e.target.value) }))} className={inputClass} />)}
+          </>
+        );
+      case 'sharpen':
+        return (
+          <>
+            {field('Intensity', <input type="range" min="0.5" max="10" step="0.5" value={params.sharpenAmount} onChange={(e) => setParams(p => ({ ...p, sharpenAmount: Number(e.target.value) }))} className={rangeClass} />)}
+            <div className="flex justify-end text-xs text-zinc-400 font-mono">{params.sharpenAmount}x</div>
+          </>
+        );
+      case 'blur':
+        return (
+          <>
+            {field('Kernel Size', <input type="range" min="3" max="31" step="2" value={params.blurKsize} onChange={(e) => setParams(p => ({ ...p, blurKsize: Number(e.target.value) }))} className={rangeClass} />)}
+            <div className="flex justify-end text-xs text-zinc-400 font-mono">{params.blurKsize}×{params.blurKsize}</div>
+            
+            {field('Sigma', <input type="range" min="0.1" max="10.0" step="0.1" value={params.blurSigma} onChange={(e) => setParams(p => ({ ...p, blurSigma: Number(e.target.value) }))} className={rangeClass} />)}
+            <div className="flex justify-end text-xs text-zinc-400 font-mono">{params.blurSigma}</div>
           </>
         );
       case 'rotate':

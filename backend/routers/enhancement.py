@@ -2,7 +2,7 @@ from fastapi import APIRouter, File, UploadFile, Form, Response
 import os
 
 from utils.image_utils import *
-from services.enhancement import brightness_contrast, histogram_equalization
+from services.enhancement import brightness_contrast, histogram_equalization, sharpen, blur
 
 router = APIRouter()
 
@@ -47,3 +47,42 @@ async def histogram_equalization_endpoint(
         media_t = "image/jpeg"
         
     return Response(content=output_bytes, media_type=media_t)
+
+@router.post("/api/enhancement/sharpen")
+async def sharpen_endpoint(
+    file: UploadFile = File(...),
+    amount: float = Form(1.0)
+):
+    _, ext = os.path.splitext(file.filename)
+    if not ext:
+        ext = ".jpg"
+        
+    img = await read_image_as_array(file)
+    hasil_manipulasi = sharpen(img, amount)
+    output_bytes = encode_image_to_bytes(hasil_manipulasi, extension=ext)
+    
+    media_t = f"image/{ext.replace('.', '')}"
+    if media_t == "image/jpg":
+        media_t = "image/jpeg"
+        
+    return Response(content=output_bytes, media_type=media_t)
+
+@router.post("/api/enhancement/blur")
+async def blur_endpoint(
+    file: UploadFile = File(...),
+    ksize: int = Form(5),
+    sigma: float = Form(1.0)
+):
+    _, ext = os.path.splitext(file.filename)
+    if not ext:
+        ext = ".jpg"
+        
+    img = await read_image_as_array(file)
+    hasil_manipulasi = blur(img, ksize, sigma)
+    output_bytes = encode_image_to_bytes(hasil_manipulasi, extension=ext)
+    
+    media_t = f"image/{ext.replace('.', '')}"
+    if media_t == "image/jpg":
+        media_t = "image/jpeg"
+        
+    return Response(content=output_bytes, media_type=media_t)
