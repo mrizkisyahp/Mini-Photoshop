@@ -50,3 +50,34 @@ def gaussian_blur(img: np.ndarray, kernel_size: int, sigma: float) -> np.ndarray
     res_final = np.clip(hasil, 0, 255).astype(np.uint8)
 
     return res_final
+
+
+def median_filter(img: np.ndarray, kernel_size: int) -> np.ndarray:
+    
+    # Validasi kernel_size harus ganjil dan positif
+    if kernel_size % 2 == 0:
+        kernel_size += 1
+    kernel_size = max(1, kernel_size)
+
+    radius = kernel_size // 2
+
+    # Padding reflect agar tepi tidak terpotong
+    if img.ndim == 3:
+        img_padded = np.pad(img, ((radius, radius), (radius, radius), (0, 0)), mode='reflect')
+    else:
+        img_padded = np.pad(img, ((radius, radius), (radius, radius)), mode='reflect')
+
+    h, w = img.shape[:2]
+    hasil = np.zeros_like(img)
+
+    for i in range(h):
+        for j in range(w):
+            region = img_padded[i:i + kernel_size, j:j + kernel_size]
+            if img.ndim == 3:
+                # Ambil median tiap channel secara terpisah
+                for c in range(img.shape[2]):
+                    hasil[i, j, c] = np.median(region[:, :, c])
+            else:
+                hasil[i, j] = np.median(region)
+
+    return hasil.astype(np.uint8)
