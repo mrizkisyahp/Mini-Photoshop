@@ -1,11 +1,15 @@
 import numpy as np
 
 
-def gaussian_blur(img: np.ndarray) -> np.ndarray:
+def gaussian_blur(img: np.ndarray, kernel_size: int, sigma: float) -> np.ndarray:
     
-    kernel_size = 5
-
-    sigma = 0.3 * ((kernel_size - 1) * 0.5 - 1) + 0.8
+    if kernel_size % 2 == 0:
+        kernel_size += 1
+    kernel_size = max(1, kernel_size)
+    
+    if sigma == 0.0:
+        sigma = 0.3 * ((kernel_size - 1) * 0.5 - 1) + 0.8
+    
 
     # Buat 1D Gaussian kernel
     radius = kernel_size // 2

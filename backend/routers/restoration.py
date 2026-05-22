@@ -9,6 +9,8 @@ router = APIRouter()
 @router.post("/api/restoration/gaussian-blur")
 async def gaussian_blur_endpoint(
   file: UploadFile = File(...),
+  kernel_size: int = Form(5),
+  sigma: float = Form(0.0)
 ):
   _,ext = os.path.splitext(file.filename)
   if not ext:
@@ -16,7 +18,7 @@ async def gaussian_blur_endpoint(
     
   img = await read_image_as_array(file)
   
-  hasil_manipulasi = gaussian_blur(img)
+  hasil_manipulasi = gaussian_blur(img, kernel_size, sigma)
   
   output_bytes = encode_image_to_bytes(hasil_manipulasi, extension=ext)
   

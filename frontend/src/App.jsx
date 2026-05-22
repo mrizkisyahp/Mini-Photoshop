@@ -154,6 +154,7 @@ const defaultParams = {
   quantBits: 4,
 };
 
+// !!!!!!!!!!!!!!ENDPOINT!!!!!!!!!!!!!!
 const toolEndpointMap = {
   // Enhancement
   brightness: '/api/enhancement/brightness-contrast',
