@@ -22,101 +22,110 @@ const toolGroups = [
     id: 'enhancement',
     name: 'Enhancement',
     icon: FiSliders,
+    description: 'Improve overall image quality by adjusting luminance, sharpening fine features, or equalizing histograms for better contrast.',
     tools: [
-      { id: 'brightness', label: 'Brightness / Contrast', icon: FiSun },
-      { id: 'sharpen', label: 'Sharpen', icon: FiCrosshair },
-      { id: 'blur', label: 'Gaussian Blur', icon: FiDroplet },
-      { id: 'clahe', label: 'Histogram Eq', icon: FiBarChart2 },
+      { id: 'brightness', label: 'Brightness / Contrast', icon: FiSun, description: 'Adjust overall image exposure and fine-tune the intensity difference between dark and light pixels.' },
+      { id: 'sharpen', label: 'Sharpen', icon: FiCrosshair, description: 'Enhance high-frequency details and edge definitions to make the image appear crisper.' },
+      { id: 'blur', label: 'Smoothing (Blur)', icon: FiDroplet, description: 'Soften the overall image appearance and reduce high-frequency details for an aesthetically smooth effect.' },
+      { id: 'clahe', label: 'Histogram Eq', icon: FiBarChart2, description: 'Redistribute pixel intensities to uniformize contrast, particularly effective for low-contrast images.' },
     ],
   },
   {
     id: 'restoration',
     name: 'Restoration',
     icon: FiFilter,
+    description: 'Restore degraded images by applying specialized noise reduction filters and spatial convolution techniques.',
     tools: [
-      { id: 'blur', label: 'Gaussian Blur', icon: FiDroplet },
-      { id: 'median', label: 'Median Filter', icon: FiFilter },
-      { id: 'saltpepper', label: 'Salt & Pepper', icon: FiGrid },
+      { id: 'restore_blur', label: 'Gaussian Blur (Denoise)', icon: FiDroplet, description: 'Apply spatial Gaussian convolution to suppress noise variance and clean up sensor grain.' },
+      { id: 'median', label: 'Median Filter', icon: FiFilter, description: 'Non-linear filter that replaces pixel values with local neighborhood medians, excellent for preserving edges.' },
+      { id: 'saltpepper', label: 'Salt & Pepper', icon: FiGrid, description: 'Simulate impulse noise (random white and black pixels) on the image to test restoration filters.' },
     ],
   },
   {
     id: 'geometric',
     name: 'Geometric',
     icon: FiLayout,
+    description: 'Modify spatial coordinates and pixel grids using affine transformation matrices and interpolation techniques.',
     tools: [
-      { id: 'move', label: 'Move', icon: FiMove },
-      { id: 'resize', label: 'Resize', icon: FiMaximize },
-      { id: 'rotate', label: 'Rotate', icon: FiRotateCw },
-      { id: 'flip', label: 'Flip', icon: FiColumns },
-      { id: 'crop', label: 'Crop Mode', icon: FiCrop },
+      { id: 'move', label: 'Move', icon: FiMove, description: 'Translate the image horizontally or vertically across the workspace coordinates.' },
+      { id: 'resize', label: 'Resize', icon: FiMaximize, description: 'Scale the image dimensions up or down using spatial interpolations like bilinear or nearest-neighbor.' },
+      { id: 'rotate', label: 'Rotate', icon: FiRotateCw, description: 'Pivot the image by a custom angle (0° to 360°) around its center coordinates.' },
+      { id: 'flip', label: 'Flip', icon: FiColumns, description: 'Mirror the image coordinate array horizontally, vertically, or along both axes.' },
+      { id: 'crop', label: 'Crop Mode', icon: FiCrop, description: 'Define and extract a customized rectangular sub-region of interest (ROI) from the main coordinate grid.' },
     ],
   },
   {
     id: 'edge',
     name: 'Binary & Edge',
     icon: FiActivity,
+    description: 'Detect structural boundaries, extract contours, and manipulate binary structures using localized kernel operations.',
     tools: [
-      { id: 'threshold', label: 'Thresholding', icon: FiGrid },
-      { id: 'canny', label: 'Canny', icon: FiActivity },
-      { id: 'sobel', label: 'Sobel', icon: FiTrendingUp },
-      { id: 'prewitt', label: 'Prewitt', icon: FiZap },
-      { id: 'roberts', label: 'Roberts', icon: FiTriangle },
-      { id: 'laplacian', label: 'Laplacian', icon: FiCircle },
-      { id: 'log', label: 'Laplacian of Gaussian', icon: FiWifi },
-      { id: 'erosion', label: 'Erosion', icon: FiMinimize2 },
-      { id: 'dilation', label: 'Dilation', icon: FiMaximize2 },
+      { id: 'threshold', label: 'Thresholding', icon: FiGrid, description: 'Segment the image into black and white pixels based on a chosen luminance cutoff level.' },
+      { id: 'canny', label: 'Canny', icon: FiActivity, description: 'An optimal multi-stage edge detector that suppresses noise, calculates gradients, performs non-maximum suppression, and applies hysteresis thresholding.' },
+      { id: 'sobel', label: 'Sobel', icon: FiTrendingUp, description: 'Calculate horizontal and vertical image gradients using Sobel kernels to locate strong, high-contrast edges.' },
+      { id: 'prewitt', label: 'Prewitt', icon: FiZap, description: 'Compute edge gradients using the Prewitt operator to emphasize horizontal and vertical lines.' },
+      { id: 'roberts', label: 'Roberts', icon: FiTriangle, description: 'Fast, simple 2D spatial gradient measurement to highlight diagonal edges.' },
+      { id: 'laplacian', label: 'Laplacian', icon: FiCircle, description: 'Compute the second derivative of the image to detect rapid intensity transitions.' },
+      { id: 'log', label: 'Laplacian of Gaussian', icon: FiWifi, description: 'Apply a Gaussian blur before Laplacian edge detection to minimize noise sensitivity.' },
+      { id: 'erosion', label: 'Erosion', icon: FiMinimize2, description: 'Shrink foreground objects in a binary image by stripping away outer boundary pixels using structuring elements.' },
+      { id: 'dilation', label: 'Dilation', icon: FiMaximize2, description: 'Expand foreground objects in a binary image by adding pixels to boundaries using structuring elements.' },
     ],
   },
   {
     id: 'color',
     name: 'Color',
     icon: FiImage,
+    description: 'Transform color spaces, isolate specific color channels, and tweak basic hue/saturation levels.',
     tools: [
-      { id: 'grayscale', label: 'Grayscale', icon: FiMoon },
-      { id: 'hsv', label: 'Hue / Saturation', icon: FiAperture },
-      { id: 'channel_r', label: 'Red Channel', icon: FiImage },
-      { id: 'channel_g', label: 'Green Channel', icon: FiImage },
-      { id: 'channel_b', label: 'Blue Channel', icon: FiImage },
+      { id: 'grayscale', label: 'Grayscale', icon: FiMoon, description: 'Convert multi-channel RGB colors to single-channel intensity values using weighted luminance values.' },
+      { id: 'hsv', label: 'Hue / Saturation', icon: FiAperture, description: 'Adjust pure color shade (Hue) and color intensity/vibrancy (Saturation) in the HSV model.' },
+      { id: 'channel_r', label: 'Red Channel', icon: FiImage, description: 'Isolate the 8-bit red component array of the original RGB spectrum.' },
+      { id: 'channel_g', label: 'Green Channel', icon: FiImage, description: 'Isolate the 8-bit green component array of the original RGB spectrum.' },
+      { id: 'channel_b', label: 'Blue Channel', icon: FiImage, description: 'Isolate the 8-bit blue component array of the original RGB spectrum.' },
     ],
   },
   {
     id: 'segmentation',
     name: 'Segmentation',
     icon: FiBox,
+    description: 'Partition the image into distinct regions, contours, or masks to isolate important foreground elements.',
     tools: [
-      { id: 'seg_threshold', label: 'Threshold-based', icon: FiGrid },
-      { id: 'seg_edge', label: 'Edge-based', icon: FiActivity },
-      { id: 'seg_region', label: 'Region-based', icon: FiPieChart },
+      { id: 'seg_threshold', label: 'Threshold-based', icon: FiGrid, description: 'Extract objects from backgrounds by grouping pixel values above or below a chosen limit.' },
+      { id: 'seg_edge', label: 'Edge-based', icon: FiActivity, description: 'Delineate object boundaries by grouping detected edges into continuous contours.' },
+      { id: 'seg_region', label: 'Region-based', icon: FiPieChart, description: 'Group neighboring pixels with similar intensity properties into homogeneous regions.' },
     ],
   },
   {
     id: 'histogram',
     name: 'Histogram',
     icon: FiBarChart,
+    description: 'Visualize the numerical distribution of pixel intensities to evaluate contrast and color spread.',
     tools: [
-      { id: 'histogram', label: 'Grayscale Histogram', icon: FiBarChart },
-      { id: 'histogram_rgb', label: 'RGB Histogram', icon: FiBarChart2 },
+      { id: 'histogram', label: 'Grayscale Histogram', icon: FiBarChart, description: 'Plot the distribution of grey level intensities from absolute black (0) to pure white (255).' },
+      { id: 'histogram_rgb', label: 'RGB Histogram', icon: FiBarChart2, description: 'Generate overlapping frequency distributions for the Red, Green, and Blue color channels.' },
     ],
   },
   {
     id: 'compression',
     name: 'Compression',
     icon: FiScissors,
+    description: 'Reduce the storage footprint using lossy quantization, standard JPEG simulation, or lossless encoding algorithms.',
     tools: [
-      { id: 'jpeg', label: 'JPEG Quality', icon: FiImage },
-      { id: 'rle', label: 'RLE', icon: FiCpu },
-      { id: 'huffman', label: 'Huffman', icon: FiCode },
-      { id: 'arithmetic', label: 'Arithmetic', icon: FiCode },
-      { id: 'lzw', label: 'LZW', icon: FiCode },
-      { id: 'quantization', label: 'Quantization', icon: FiTarget },
+      { id: 'jpeg', label: 'JPEG Quality', icon: FiImage, description: 'Simulate lossy JPEG compression using block-based discrete cosine transform (DCT) and quantization.' },
+      { id: 'rle', label: 'RLE', icon: FiCpu, description: 'Apply Run-Length Encoding to compress contiguous sequences of identical pixel values losslessly.' },
+      { id: 'huffman', label: 'Huffman', icon: FiCode, description: 'Use variable-length entropy coding to compress symbols based on their statistical frequency.' },
+      { id: 'arithmetic', label: 'Arithmetic', icon: FiCode, description: 'Lossless compression that maps a stream of symbols to a single high-precision decimal range.' },
+      { id: 'lzw', label: 'LZW', icon: FiCode, description: 'Compress images losslessly using dictionary-based string matching (Lempel-Ziv-Welch).' },
+      { id: 'quantization', label: 'Quantization', icon: FiTarget, description: 'Reduce the total number of colors by mapping pixel intensities into a lower bit-depth.' },
     ],
   },
   {
     id: 'cnn',
     name: 'CNN',
     icon: FiTarget,
+    description: 'Leverage Convolutional Neural Networks to automatically locate, classify, and identify objects in the image.',
     tools: [
-      { id: 'cnn_detect', label: 'Object Recognition', icon: FiTarget },
+      { id: 'cnn_detect', label: 'Object Recognition', icon: FiTarget, description: 'Run a deep learning model to detect and classify complex visual classes (e.g., humans or animals).' },
     ],
   },
 ];
@@ -161,7 +170,7 @@ const toolEndpointMap = {
   sharpen: '/api/enhancement/sharpen',
   clahe: '/api/enhancement/histogram-equalization',
   // Restoration
-  blur: '/api/enhancement/blur',
+  restore_blur: '/api/restoration/gaussian-blur',
   median: '/api/restoration/median',
   saltpepper: '/api/restoration/denoise',
   // Geometric
@@ -221,6 +230,18 @@ function buildBackendParams(toolId, params) {
       return { amount: params.sharpenAmount };
     case 'blur':
       return { ksize: params.blurKsize, sigma: params.blurSigma };
+    case 'restore_blur':
+      return { kernel_size: params.blurKsize, sigma: params.blurSigma };
+    case 'median':
+      return { kernel_size: params.medianKsize };
+    case 'saltpepper':
+      return { noise_amount: params.noiseAmount };
+    case 'rotate':
+      return { angle: params.rotate };
+    case 'flip':
+      return { mode: params.flipMode };
+    case 'crop':
+      return { x: params.cropX, y: params.cropY, width: params.cropWidth, height: params.cropHeight };
     default:
       return params;
   }
@@ -276,6 +297,7 @@ function PropertiesPanel({ tool, params, setParams, canvasRef, onApply, loading 
           </>
         );
       case 'blur':
+      case 'restore_blur':
         return (
           <>
             {field('Kernel Size', <input type="range" min="3" max="31" step="2" value={params.blurKsize} onChange={(e) => setParams(p => ({ ...p, blurKsize: Number(e.target.value) }))} className={rangeClass} />)}
@@ -311,19 +333,31 @@ function PropertiesPanel({ tool, params, setParams, canvasRef, onApply, loading 
               <div className="grid grid-cols-2 gap-3">
                 <div className="flex flex-col">
                   <span className="text-[10px] text-zinc-500 mb-1">X (px)</span>
-                  <input type="number" value={params.moveX} onChange={(e) => {
-                    const cw = canvasRef?.current?.clientWidth ?? 9999;
-                    const margin = 48;
-                    setParams(p => ({ ...p, moveX: clamp(Number(e.target.value), -(p.resizeWidth - margin), cw - margin) }));
-                  }} className={inputClass} />
+                  <input
+                    type="number"
+                    value={params.moveX}
+                    onChange={(e) => setParams(p => ({ ...p, moveX: e.target.value === '' ? '' : Number(e.target.value) }))}
+                    onBlur={(e) => {
+                      const cw = canvasRef?.current?.clientWidth ?? 9999;
+                      const margin = 48;
+                      setParams(p => ({ ...p, moveX: clamp(Number(e.target.value) || 0, -(p.resizeWidth - margin), cw - margin) }));
+                    }}
+                    className={inputClass}
+                  />
                 </div>
                 <div className="flex flex-col">
                   <span className="text-[10px] text-zinc-500 mb-1">Y (px)</span>
-                  <input type="number" value={params.moveY} onChange={(e) => {
-                    const ch = canvasRef?.current?.clientHeight ?? 9999;
-                    const margin = 48;
-                    setParams(p => ({ ...p, moveY: clamp(Number(e.target.value), -(p.resizeHeight - margin), ch - margin) }));
-                  }} className={inputClass} />
+                  <input
+                    type="number"
+                    value={params.moveY}
+                    onChange={(e) => setParams(p => ({ ...p, moveY: e.target.value === '' ? '' : Number(e.target.value) }))}
+                    onBlur={(e) => {
+                      const ch = canvasRef?.current?.clientHeight ?? 9999;
+                      const margin = 48;
+                      setParams(p => ({ ...p, moveY: clamp(Number(e.target.value) || 0, -(p.resizeHeight - margin), ch - margin) }));
+                    }}
+                    className={inputClass}
+                  />
                 </div>
               </div>
             ))}
@@ -339,17 +373,31 @@ function PropertiesPanel({ tool, params, setParams, canvasRef, onApply, loading 
               <div className="grid grid-cols-2 gap-3">
                 <div className="flex flex-col">
                   <span className="text-[10px] text-zinc-500 mb-1">Width (px)</span>
-                  <input type="number" min="48" value={params.resizeWidth} onChange={(e) => {
-                    const cw = canvasRef?.current?.clientWidth ?? 8192;
-                    setParams(p => ({ ...p, resizeWidth: clamp(Number(e.target.value), 48, cw) }));
-                  }} className={inputClass} />
+                  <input
+                    type="number"
+                    min="48"
+                    value={params.resizeWidth}
+                    onChange={(e) => setParams(p => ({ ...p, resizeWidth: e.target.value === '' ? '' : Number(e.target.value) }))}
+                    onBlur={(e) => {
+                      const cw = canvasRef?.current?.clientWidth ?? 8192;
+                      setParams(p => ({ ...p, resizeWidth: clamp(Number(e.target.value) || 48, 48, cw) }));
+                    }}
+                    className={inputClass}
+                  />
                 </div>
                 <div className="flex flex-col">
                   <span className="text-[10px] text-zinc-500 mb-1">Height (px)</span>
-                  <input type="number" min="48" value={params.resizeHeight} onChange={(e) => {
-                    const ch = canvasRef?.current?.clientHeight ?? 8192;
-                    setParams(p => ({ ...p, resizeHeight: clamp(Number(e.target.value), 48, ch) }));
-                  }} className={inputClass} />
+                  <input
+                    type="number"
+                    min="48"
+                    value={params.resizeHeight}
+                    onChange={(e) => setParams(p => ({ ...p, resizeHeight: e.target.value === '' ? '' : Number(e.target.value) }))}
+                    onBlur={(e) => {
+                      const ch = canvasRef?.current?.clientHeight ?? 8192;
+                      setParams(p => ({ ...p, resizeHeight: clamp(Number(e.target.value) || 48, 48, ch) }));
+                    }}
+                    className={inputClass}
+                  />
                 </div>
               </div>
             ))}
@@ -362,12 +410,44 @@ function PropertiesPanel({ tool, params, setParams, canvasRef, onApply, loading 
         return (
           <>
             {field('Position X/Y', <div className="grid grid-cols-2 gap-3">
-              <input type="number" min="0" value={params.cropX} onChange={(e) => setParams(p => ({ ...p, cropX: Number(e.target.value) }))} className={inputClass} placeholder="X" />
-              <input type="number" min="0" value={params.cropY} onChange={(e) => setParams(p => ({ ...p, cropY: Number(e.target.value) }))} className={inputClass} placeholder="Y" />
+              <input
+                type="number"
+                min="0"
+                value={params.cropX}
+                onChange={(e) => setParams(p => ({ ...p, cropX: e.target.value === '' ? '' : Math.max(0, Number(e.target.value)) }))}
+                onBlur={(e) => setParams(p => ({ ...p, cropX: Math.max(0, Number(e.target.value) || 0) }))}
+                className={inputClass}
+                placeholder="X"
+              />
+              <input
+                type="number"
+                min="0"
+                value={params.cropY}
+                onChange={(e) => setParams(p => ({ ...p, cropY: e.target.value === '' ? '' : Math.max(0, Number(e.target.value)) }))}
+                onBlur={(e) => setParams(p => ({ ...p, cropY: Math.max(0, Number(e.target.value) || 0) }))}
+                className={inputClass}
+                placeholder="Y"
+              />
             </div>)}
             {field('Size W/H', <div className="grid grid-cols-2 gap-3">
-              <input type="number" min="16" value={params.cropWidth} onChange={(e) => setParams(p => ({ ...p, cropWidth: clamp(Number(e.target.value), 16, 8192) }))} className={inputClass} placeholder="W" />
-              <input type="number" min="16" value={params.cropHeight} onChange={(e) => setParams(p => ({ ...p, cropHeight: clamp(Number(e.target.value), 16, 8192) }))} className={inputClass} placeholder="H" />
+              <input
+                type="number"
+                min="16"
+                value={params.cropWidth}
+                onChange={(e) => setParams(p => ({ ...p, cropWidth: e.target.value === '' ? '' : Number(e.target.value) }))}
+                onBlur={(e) => setParams(p => ({ ...p, cropWidth: clamp(Number(e.target.value) || 16, 16, 8192) }))}
+                className={inputClass}
+                placeholder="W"
+              />
+              <input
+                type="number"
+                min="16"
+                value={params.cropHeight}
+                onChange={(e) => setParams(p => ({ ...p, cropHeight: e.target.value === '' ? '' : Number(e.target.value) }))}
+                onBlur={(e) => setParams(p => ({ ...p, cropHeight: clamp(Number(e.target.value) || 16, 16, 8192) }))}
+                className={inputClass}
+                placeholder="H"
+              />
             </div>)}
             <div className="bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-xs p-3 rounded-md italic">
               Draw a box directly on the canvas to crop visually!
@@ -443,14 +523,21 @@ function PropertiesPanel({ tool, params, setParams, canvasRef, onApply, loading 
     <div className="flex flex-col h-full overflow-y-auto custom-scrollbar">
       <div className="p-5 space-y-6 flex-1">
         {/* Active Tool Header */}
-        <div className="flex items-center gap-3 pb-4 border-b border-zinc-800/50">
-          <div className="w-8 h-8 rounded-md bg-zinc-800 flex items-center justify-center text-cyan-400">
-            {tool.icon && <tool.icon size={16} />}
+        <div className="flex flex-col gap-3 pb-4 border-b border-zinc-800/50">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-md bg-zinc-800 flex items-center justify-center text-cyan-400">
+              {tool.icon && <tool.icon size={16} />}
+            </div>
+            <div>
+              <h3 className="text-sm font-medium text-zinc-100">{tool.label}</h3>
+              <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-mono">Active Tool</p>
+            </div>
           </div>
-          <div>
-            <h3 className="text-sm font-medium text-zinc-100">{tool.label}</h3>
-            <p className="text-[10px] text-zinc-500 uppercase tracking-widest">Active Tool</p>
-          </div>
+          {tool.description && (
+            <p className="text-xs text-zinc-400 leading-relaxed bg-zinc-950/40 p-3 rounded-lg border border-zinc-800/40 font-normal">
+              {tool.description}
+            </p>
+          )}
         </div>
 
         {/* Sliders / Inputs */}
@@ -459,17 +546,19 @@ function PropertiesPanel({ tool, params, setParams, canvasRef, onApply, loading 
         </div>
 
         {/* Apply Filter Button */}
-        <button
-          onClick={onApply}
-          disabled={loading}
-          className="w-full mt-2 bg-cyan-500 hover:bg-cyan-400 disabled:opacity-50 disabled:cursor-not-allowed text-zinc-950 font-semibold text-xs py-2.5 rounded-lg transition-all flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/20"
-        >
-          {loading ? (
-            <><div className="w-3 h-3 border-2 border-zinc-950/30 border-t-zinc-950 rounded-full animate-spin" /> Processing…</>
-          ) : (
-            'Apply Filter'
-          )}
-        </button>
+        {tool.id !== 'move' && tool.id !== 'resize' && (
+          <button
+            onClick={onApply}
+            disabled={loading}
+            className="w-full mt-2 bg-cyan-500 hover:bg-cyan-400 disabled:opacity-50 disabled:cursor-not-allowed text-zinc-950 font-semibold text-xs py-2.5 rounded-lg transition-all flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/20"
+          >
+            {loading ? (
+              <><div className="w-3 h-3 border-2 border-zinc-950/30 border-t-zinc-950 rounded-full animate-spin" /> Processing…</>
+            ) : (
+              'Apply Filter'
+            )}
+          </button>
+        )}
       </div>
 
       {/* Placeholders for Professional UX */}
@@ -803,8 +892,13 @@ function App() {
 
         {/* --- INNER SIDEBAR (SUBTOOLS) --- */}
         <aside className="w-56 border-r border-zinc-800 bg-[#121214] shrink-0 flex flex-col z-10">
-          <div className="px-4 py-3 border-b border-zinc-800/50">
+          <div className="px-4 py-3 border-b border-zinc-800/50 space-y-1 bg-zinc-950/20">
             <h2 className="text-xs font-semibold text-zinc-300">{activeCategory?.name}</h2>
+            {activeCategory?.description && (
+              <p className="text-[10px] text-zinc-500 leading-relaxed font-normal">
+                {activeCategory.description}
+              </p>
+            )}
           </div>
           <div className="flex-1 overflow-y-auto p-2 space-y-0.5 custom-scrollbar">
             {activeCategory?.tools.map((tool) => {

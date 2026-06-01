@@ -1,38 +1,87 @@
-import os
 from fastapi import APIRouter, File, UploadFile, Form, Response
+import os
 
-from utils.image_utils import read_image_as_array, encode_image_to_bytes
-from services.geometric import rotate_image
+from utils.image_utils import *
+from services.geometric import rotate, flip, crop, translate, resize
 
 router = APIRouter()
 
 
 @router.post("/api/geometric/rotate")
-async def rotate_image_endpoint(
+async def rotate_endpoint(file: UploadFile = File(...), angle: float = Form(0.0)):
+    _, ext = os.path.splitext(file.filename)
+    if not ext:
+        ext = ".jpg"
+    img = await read_image_as_array(file)
+    hasil_manipulasi = rotate(img, angle)
+    output_bytes = encode_image_to_bytes(hasil_manipulasi, extension=ext)
+    media_t = f"image/{ext.replace('.', '')}"
+    if media_t == "image/jpg":
+        media_t = "image/jpeg"
+    return Response(content=output_bytes, media_type=media_t)
+
+
+@router.post("/api/geometric/flip")
+async def flip_endpoint(file: UploadFile = File(...), mode: str = Form("horizontal")):
+    _, ext = os.path.splitext(file.filename)
+    if not ext:
+        ext = ".jpg"
+    img = await read_image_as_array(file)
+    hasil_manipulasi = flip(img, mode)
+    output_bytes = encode_image_to_bytes(hasil_manipulasi, extension=ext)
+    media_t = f"image/{ext.replace('.', '')}"
+    if media_t == "image/jpg":
+        media_t = "image/jpeg"
+    return Response(content=output_bytes, media_type=media_t)
+
+
+@router.post("/api/geometric/crop")
+async def crop_endpoint(
     file: UploadFile = File(...),
-    rotate: float = Form(0.0),
-    method: str = Form("bilinear"),
-    fit: bool = Form(True),
+    x: int = Form(0),
+    y: int = Form(0),
+    width: int = Form(100),
+    height: int = Form(100),
 ):
-    _, file_extension = os.path.splitext(file.filename)
-    if not file_extension:
-        file_extension = ".jpg"
+    _, ext = os.path.splitext(file.filename)
+    if not ext:
+        ext = ".jpg"
+    img = await read_image_as_array(file)
+    hasil_manipulasi = crop(img, x, y, width, height)
+    output_bytes = encode_image_to_bytes(hasil_manipulasi, extension=ext)
+    media_t = f"image/{ext.replace('.', '')}"
+    if media_t == "image/jpg":
+        media_t = "image/jpeg"
+    return Response(content=output_bytes, media_type=media_t)
 
-    original_image = await read_image_as_array(file)
 
-    processed_image = rotate_image(
-        image=original_image,
-        angle_degrees=rotate,
-        interpolation_method=method,
-        resize_to_fit=fit,
-    )
+@router.post("/api/geometric/translate")
+async def translate_endpoint(
+    file: UploadFile = File(...), tx: float = Form(0.0), ty: float = Form(0.0)
+):
+    _, ext = os.path.splitext(file.filename)
+    if not ext:
+        ext = ".jpg"
+    img = await read_image_as_array(file)
+    hasil_manipulasi = translate(img, tx, ty)
+    output_bytes = encode_image_to_bytes(hasil_manipulasi, extension=ext)
+    media_t = f"image/{ext.replace('.', '')}"
+    if media_t == "image/jpg":
+        media_t = "image/jpeg"
+    return Response(content=output_bytes, media_type=media_t)
 
-    encoded_image_bytes = encode_image_to_bytes(
-        processed_image, extension=file_extension
-    )
 
-    media_type = f"image/{file_extension.replace('.', '')}"
-    if media_type == "image/jpg":
-        media_type = "image/jpeg"
-
-    return Response(content=encoded_image_bytes, media_type=media_type)
+@router.post("/api/geometric/resize")
+async def resize_endpoint(
+    file: UploadFile = File(...), width: int = Form(100), height: int = Form(100)
+):
+    _, ext = os.path.splitext(file.filename)
+    if not ext:
+        ext = ".jpg"
+    img = await read_image_as_array(file)
+    hasil_manipulasi = resize(img, width, height)
+    output_bytes = encode_image_to_bytes(hasil_manipulasi, extension=ext)
+    media_t = f"image/{ext.replace('.', '')}"
+    if media_t == "image/jpg":
+        media_t = "image/jpeg"
+    return Response(content=output_bytes, media_type=media_t)
