@@ -9,6 +9,7 @@ from utils.math_utils import (
     double_threshold,
     hysteresis_tracking,
     compute_gradient_magnitude,
+    generate_prewitt_kernels,
 )
 
 
@@ -67,3 +68,21 @@ def sobel(image: np.ndarray) -> np.ndarray:
 
     # kembalikan ke format BGR
     return grayscale_to_bgr(sobel_edges)
+
+
+def prewitt(imageL: np.ndarray) -> np.ndarray:
+    # konversi gambar BGR ke grayscale
+    grayscale_image = bgr_to_grayscale(image)
+
+    # dapatkan kernel prewitt arah x dan y
+    prewitt_kernel_x, prewitt_kernel_y = generate_prewitt_kernels()
+
+    # hitung magnitudo gradient
+    gradient_magnitude = compute_gradient_magnitude(
+        grayscale_image, prewitt_kernel_x, prewitt_kernel_y
+    )
+
+    # clipping ke range [0, 255] dan cast ke format uint8
+    prewitt_edges = np.clip(gradient_magnitude, 0, 255).astype(np.uint8)
+
+    return grayscale_to_bgr(prewitt_edges)

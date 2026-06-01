@@ -6,6 +6,7 @@ from services.edge import (
     threshold as apply_threshold,
     canny as apply_canny,
     sobel as apply_sobel,
+    prewitt as apply_prewitt,
 )
 
 router = APIRouter()
@@ -57,7 +58,7 @@ async def canny_endpoint(
 
 
 @router.post("/api/edge/sobel")
-async def canny_endpoint(
+async def sobel_endpoint(
     file: UploadFile = File(...),
 ):
     _, ext = os.path.splitext(file.filename)
@@ -74,4 +75,23 @@ async def canny_endpoint(
     if media_t == "image/jpg":
         media_t = "image/jpeg"
 
+    return Response(content=output_bytes, media_type=media_t)
+
+
+@router.post("/api/edge/prewitt")
+async def prewitt_endpoint(file: UploadFile = File(...)):
+    _, ext = os.path.splitext(file.filename)
+    if not ext:
+        ext = ".jpg"
+
+    img = await read_image_as_array(file)
+
+    hasil_manipulasi = apply_prewitt(img)
+
+    output_bytes = encode_image_to_bytes(hasil_manipulasi, extension=ext)
+
+    media_t = f"image/{ext.replace('.', '')}"
+
+    if media_t == "image/jpg":
+        media_t = "image/jpeg"
     return Response(content=output_bytes, media_type=media_t)
