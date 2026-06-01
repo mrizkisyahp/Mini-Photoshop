@@ -8,6 +8,7 @@ from utils.math_utils import (
     non_maximum_suppression,
     double_threshold,
     hysteresis_tracking,
+    compute_gradient_magnitude,
 )
 
 
@@ -47,3 +48,22 @@ def canny(
     edges = hysteresis_tracking(thresholded_image)
 
     return grayscale_to_bgr(edges)
+
+
+def sobel(image: np.ndarray) -> np.ndarray:
+    # konversi gambar BGR ke grayscale
+    grayscale_image = bgr_to_grayscale(image)
+
+    # dapatkan kernel sobel arah x dan y
+    sobel_kernel_x, sobel_kernel_y = generate_sobel_kernels()
+
+    # hitung magnitudo gradien (Gx^2 + Gy^2)^0.5
+    gradient_magnitude = compute_gradient_magnitude(
+        grayscale_image, sobel_kernel_x, sobel_kernel_y
+    )
+
+    # clipping ke range [0, 255] dan ubah ke format uint8
+    sobel_edges = np.clip(gradient_magnitude, 0, 255).astype(np.uint8)
+
+    # kembalikan ke format BGR
+    return grayscale_to_bgr(sobel_edges)
