@@ -2,31 +2,53 @@ import cv2
 import numpy as np
 from fastapi import UploadFile
 
+
 async def read_image_as_array(file: UploadFile) -> np.ndarray:
     """
     Reads an uploaded file directly into a NumPy array (OpenCV format) in memory.
     """
     # Read the raw binary data from the uploaded file
     image_bytes = await file.read()
-    
+
     # Convert the bytes into a 1D NumPy array of unsigned 8-bit integers
     nparr = np.frombuffer(image_bytes, np.uint8)
-    
+
     # Decode the 1D array into a 2D/3D OpenCV image array
     # cv2.IMREAD_COLOR ensures we always get a BGR image
     img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-    
+
     return img
 
-def encode_image_to_bytes(img: np.ndarray, extension: str = '.jpg') -> bytes:
+
+def encode_image_to_bytes(img: np.ndarray, extension: str = ".jpg") -> bytes:
     """
     Encodes an OpenCV image array back into raw bytes.
     """
     # Encode the image into memory buffer
     success, encoded_image = cv2.imencode(extension, img)
-    
+
     if not success:
         raise ValueError("Failed to encode image")
-        
+
     # Return the raw bytes
     return encoded_image.tobytes()
+
+
+def bgr_to_grayscale(img: np.ndarray) -> bytes:
+    if len(img.shape) == 2:
+        return img.copy()
+
+    b = img[:, :, 0].astype(np.float32)
+    g = img[:, :, 1].astype(np.float32)
+    r = img[:, :, 2].astype(np.float32)
+
+    gray = 0.114 * b + 0.587 * g + 0.229 * r
+
+    return np.clip(gray, 0, 255).astype(np.uint8)
+
+
+def grayscale_to_bgr(img: np.ndarray) -> np.ndarray:
+    if len(img.shape) == 3:
+        return img.copy()
+
+    return np.stack([img, img, img], axis=2)

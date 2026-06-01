@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from routers.enhancement import router as router_enhancement
 from routers.restoration import router as router_restoration
 from routers.geometric import router as router_geometric
+from routers.edge import router as router_edge
 
 app = FastAPI()
 
@@ -17,3 +18,4 @@ app.add_middleware(
 app.include_router(router_enhancement)
 app.include_router(router_restoration)
 app.include_router(router_geometric)
+app.include_router(router_edge)
