@@ -35,6 +35,11 @@ def encode_image_to_bytes(img: np.ndarray, extension: str = ".jpg") -> bytes:
 
 
 def bgr_to_grayscale(img: np.ndarray) -> bytes:
+    """
+    Konversi BGR ke grayscale menggunakan weigthed luminance
+    Rumus = 0.229*R + 0.587*G + 0.114*B
+    """
+
     if len(img.shape) == 2:
         return img.copy()
 
@@ -48,6 +53,11 @@ def bgr_to_grayscale(img: np.ndarray) -> bytes:
 
 
 def grayscale_to_bgr(img: np.ndarray) -> np.ndarray:
+    """
+    Konversi grayscale 2D ke BGR 3 channel secara manual
+    Caranya: stack array yang sama 3 kali di axis ke-2
+    """
+
     if len(img.shape) == 3:
         return img.copy()
 

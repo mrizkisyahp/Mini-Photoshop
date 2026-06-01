@@ -187,7 +187,7 @@ const toolEndpointMap = {
   channel_b: '/api/color/channel?channel=b',
   // Binary & Edge
   threshold: '/api/edge/threshold',
-  canny: '/edge/canny',
+  canny: '/api/edge/canny',
   sobel: '/api/edge/sobel',
   prewitt: '/api/edge/prewitt',
   roberts: '/api/edge/roberts',
