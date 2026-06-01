@@ -2,7 +2,7 @@ from fastapi import APIRouter, File, UploadFile, Form, Response
 import os
 
 from utils.image_utils import *
-from services.restoration import median_filter
+from services.restoration import gaussian_blur, median_filter
 
 router = APIRouter()
 
@@ -49,3 +49,4 @@ async def median_filter_endpoint(
     media_t = "image/jpeg"
   
   return Response(content=output_bytes, media_type=media_t)
+
