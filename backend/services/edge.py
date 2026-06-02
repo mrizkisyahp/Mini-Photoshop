@@ -1,3 +1,4 @@
+from utils.math_utils import generate_roberts_kernels
 import numpy as np
 from utils.image_utils import bgr_to_grayscale, grayscale_to_bgr
 from utils.math_utils import (
@@ -70,7 +71,7 @@ def sobel(image: np.ndarray) -> np.ndarray:
     return grayscale_to_bgr(sobel_edges)
 
 
-def prewitt(imageL: np.ndarray) -> np.ndarray:
+def prewitt(image: np.ndarray) -> np.ndarray:
     # konversi gambar BGR ke grayscale
     grayscale_image = bgr_to_grayscale(image)
 
@@ -86,3 +87,13 @@ def prewitt(imageL: np.ndarray) -> np.ndarray:
     prewitt_edges = np.clip(gradient_magnitude, 0, 255).astype(np.uint8)
 
     return grayscale_to_bgr(prewitt_edges)
+
+
+def roberts(image: np.ndarray) -> np.ndarray:
+    grayscale_image = bgr_to_grayscale(image)
+    roberts_kernel_x, roberts_kernel_y = generate_roberts_kernels()
+    gradient_magnitude = compute_gradient_magnitude(
+        grayscale_image, roberts_kernel_x, roberts_kernel_y
+    )
+    roberts_edges = np.clip(gradient_magnitude, 0, 255).astype(np.uint8)
+    return grayscale_to_bgr(roberts_edges)

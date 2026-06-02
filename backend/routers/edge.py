@@ -7,6 +7,7 @@ from services.edge import (
     canny as apply_canny,
     sobel as apply_sobel,
     prewitt as apply_prewitt,
+    roberts as apply_roberts,
 )
 
 router = APIRouter()
@@ -94,4 +95,21 @@ async def prewitt_endpoint(file: UploadFile = File(...)):
 
     if media_t == "image/jpg":
         media_t = "image/jpeg"
+    return Response(content=output_bytes, media_type=media_t)
+
+
+@router.post("/api/edge/roberts")
+async def roberts_endpoint(file: UploadFile = File(...)):
+    _, ext = os.path.splitext(file.filename)
+    if not ext:
+        ext = ".jpg"
+
+    img = await read_image_as_array(file)
+    hasil_manipulasi = apply_roberts(img)
+    output_bytes = encode_image_to_bytes(hasil_manipulasi, extension=ext)
+
+    media_t = f"image/{ext.replace('.', '')}"
+    if media_t == "image/jpg":
+        media_t = "image/jpeg"
+
     return Response(content=output_bytes, media_type=media_t)
