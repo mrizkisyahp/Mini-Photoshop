@@ -11,6 +11,7 @@ from utils.math_utils import (
     hysteresis_tracking,
     compute_gradient_magnitude,
     generate_prewitt_kernels,
+    generate_laplacian_kernel,
 )
 
 
@@ -97,3 +98,11 @@ def roberts(image: np.ndarray) -> np.ndarray:
     )
     roberts_edges = np.clip(gradient_magnitude, 0, 255).astype(np.uint8)
     return grayscale_to_bgr(roberts_edges)
+
+
+def laplacian(image: np.ndarray) -> np.ndarray:
+    grayscale_image = bgr_to_grayscale(image)
+    laplacian_kernel = generate_laplacian_kernel()
+    laplacian_filtered = convolve2d_single_channel(grayscale_image, laplacian_kernel)
+    laplacian_egdes = np.clip(np.abs(laplacian_filtered), 0, 255).astype(np.uint8)
+    return grayscale_to_bgr(laplacian_egdes)
