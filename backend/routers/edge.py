@@ -9,6 +9,9 @@ from services.edge import (
     prewitt as apply_prewitt,
     roberts as apply_roberts,
     laplacian as apply_laplacian,
+    laplacian_of_gaussian as apply_laplacian_of_gaussian,
+    erosion as apply_erosion,
+    dilation as apply_dilation,
 )
 
 router = APIRouter()
@@ -117,13 +120,64 @@ async def roberts_endpoint(file: UploadFile = File(...)):
 
 
 @router.post("/api/edge/laplacian")
-async def roberts_endpoint(file: UploadFile = File(...)):
+async def laplacian_endpoint(file: UploadFile = File(...)):
     _, ext = os.path.splitext(file.filename)
     if not ext:
         ext = ".jpg"
 
     img = await read_image_as_array(file)
     hasil_manipulasi = apply_laplacian(img)
+    output_bytes = encode_image_to_bytes(hasil_manipulasi, extension=ext)
+
+    media_t = f"image/{ext.replace('.', '')}"
+    if media_t == "image/jpg":
+        media_t = "image/jpeg"
+
+    return Response(content=output_bytes, media_type=media_t)
+
+
+@router.post("/api/edge/log")
+async def laplacan_of_gaussian_endpoint(file: UploadFile = File(...)):
+    _, ext = os.path.splitext(file.filename)
+    if not ext:
+        ext = ".jpg"
+
+    img = await read_image_as_array(file)
+    hasil_manipulasi = apply_laplacian_of_gaussian(img)
+    output_bytes = encode_image_to_bytes(hasil_manipulasi, extension=ext)
+
+    media_t = f"image/{ext.replace('.', '')}"
+    if media_t == "image/jpg":
+        media_t = "image/jpeg"
+
+    return Response(content=output_bytes, media_type=media_t)
+
+
+@router.post("/api/morphology/erosion")
+async def erosion_endpoint(file: UploadFile = File(...), kernel_size: int = Form(3)):
+    _, ext = os.path.splitext(file.filename)
+    if not ext:
+        ext = ".jpg"
+
+    img = await read_image_as_array(file)
+    hasil_manipulasi = apply_erosion(img, kernel_size)
+    output_bytes = encode_image_to_bytes(hasil_manipulasi, extension=ext)
+
+    media_t = f"image/{ext.replace('.', '')}"
+    if media_t == "image/jpg":
+        media_t = "image/jpeg"
+
+    return Response(content=output_bytes, media_type=media_t)
+
+
+@router.post("/api/morphology/dilation")
+async def dilation_endpoint(file: UploadFile = File(...), kernel_size: int = Form(3)):
+    _, ext = os.path.splitext(file.filename)
+    if not ext:
+        ext = ".jpg"
+
+    img = await read_image_as_array(file)
+    hasil_manipulasi = apply_dilation(img, kernel_size)
     output_bytes = encode_image_to_bytes(hasil_manipulasi, extension=ext)
 
     media_t = f"image/{ext.replace('.', '')}"

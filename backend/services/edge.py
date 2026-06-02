@@ -1,5 +1,6 @@
 from utils.math_utils import generate_roberts_kernels
 import numpy as np
+from numpy.lib.stride_tricks import sliding_window_view
 from utils.image_utils import bgr_to_grayscale, grayscale_to_bgr
 from utils.math_utils import (
     generate_gaussian_kernel,
@@ -106,3 +107,37 @@ def laplacian(image: np.ndarray) -> np.ndarray:
     laplacian_filtered = convolve2d_single_channel(grayscale_image, laplacian_kernel)
     laplacian_egdes = np.clip(np.abs(laplacian_filtered), 0, 255).astype(np.uint8)
     return grayscale_to_bgr(laplacian_egdes)
+
+
+def laplacian_of_gaussian(image: np.ndarray) -> np.ndarray:
+    grayscale_image = bgr_to_grayscale(image)
+    gaussian_kernel = generate_gaussian_kernel(size=5, sigma=1.4)
+    blurred_image = convolve2d_single_channel(grayscale_image, gaussian_kernel)
+    laplacian_kernel = generate_laplacian_kernel()
+    laplacian_filtered = convolve2d_single_channel(blurred_image, laplacian_kernel)
+    laplacian_of_gaussian_edges = np.clip(np.abs(laplacian_filtered), 0, 255).astype(
+        np.uint8
+    )
+    return grayscale_to_bgr(laplacian_of_gaussian_edges)
+
+
+def erosion(image: np.ndarray, kernel_size: int = 3) -> np.ndarray:
+    grayscale_image = bgr_to_grayscale(image)
+    binary_image = np.where(grayscale_image >= 128, 255, 0).astype(np.uint8)
+    pad_size = kernel_size // 2
+    padded_image = np.pad(binary_image, pad_size, mode="constant", constant_values=0)
+    windows = sliding_window_view(padded_image, (kernel_size, kernel_size))
+    eroded_mask = np.all(windows == 255, axis=(-2, -1))
+    eroded_image = np.where(eroded_mask, 255, 0).astype(np.uint8)
+    return grayscale_to_bgr(eroded_image)
+
+
+def dilation(image: np.ndarray, kernel_size: int = 3) -> np.ndarray:
+    grayscale_image = bgr_to_grayscale(image)
+    binary_image = np.where(grayscale_image >= 128, 255, 0).astype(np.uint8)
+    pad_size = kernel_size // 2
+    padded_image = np.pad(binary_image, pad_size, mode="constant", constant_values=0)
+    windows = sliding_window_view(padded_image, (kernel_size, kernel_size))
+    dilated_mask = np.any(windows == 255, axis=(-2, -1))
+    dilated_image = np.where(dilated_mask, 255, 0).astype(np.uint8)
+    return grayscale_to_bgr(dilated_image)
