@@ -1,618 +1,38 @@
-import { useMemo, useState, useEffect, useRef } from 'react';
-import { sendImageRequest } from './api/api';
+import { useEffect, useRef, useState } from 'react';
+import { FiSettings } from 'react-icons/fi';
 import { useDropzone } from 'react-dropzone';
-import { 
-  FiUploadCloud, FiImage, FiSliders, FiLayout, FiActivity, FiScissors, FiMove,
-  FiSun, FiCrosshair, FiDroplet, FiBarChart2, FiRotateCw, FiColumns, FiMaximize, FiCrop,
-  FiMoon, FiAperture, FiBarChart, FiTrendingUp, FiMinimize2, FiMaximize2, FiCpu, FiTrash2,
-  FiCornerUpLeft, FiCornerUpRight, FiPlus, FiMinus, FiLayers, FiClock, FiEye, FiSettings,
-  FiFilter, FiZap, FiGrid, FiTarget, FiPieChart, FiCode, FiBox, FiCircle, FiTriangle, FiWifi
-} from 'react-icons/fi';
-
-import ReactCrop from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
-import { Rnd } from 'react-rnd';
+import { sendImageRequest } from './api/api';
+import AppStyles from './components/AppStyles';
+import CanvasArea from './components/CanvasArea';
+import CategorySidebar from './components/CategorySidebar';
+import Header from './components/Header';
+import PropertiesPanel from './components/PropertiesPanel';
+import ToolSidebar from './components/ToolSidebar';
+import { buildBackendParams } from './utils/imageProcessing';
+import { defaultParams, toolEndpointMap, toolGroups } from './utils/toolConfig';
 
-// ----------------------------------------------------------------------
-// DATA & CONFIG
-// ----------------------------------------------------------------------
-
-const toolGroups = [
-  {
-    id: 'enhancement',
-    name: 'Enhancement',
-    icon: FiSliders,
-    description: 'Improve overall image quality by adjusting luminance, sharpening fine features, or equalizing histograms for better contrast.',
-    tools: [
-      { id: 'brightness', label: 'Brightness / Contrast', icon: FiSun, description: 'Adjust overall image exposure and fine-tune the intensity difference between dark and light pixels.' },
-      { id: 'sharpen', label: 'Sharpen', icon: FiCrosshair, description: 'Enhance high-frequency details and edge definitions to make the image appear crisper.' },
-      { id: 'blur', label: 'Smoothing (Blur)', icon: FiDroplet, description: 'Soften the overall image appearance and reduce high-frequency details for an aesthetically smooth effect.' },
-      { id: 'clahe', label: 'Histogram Eq', icon: FiBarChart2, description: 'Redistribute pixel intensities to uniformize contrast, particularly effective for low-contrast images.' },
-    ],
-  },
-  {
-    id: 'restoration',
-    name: 'Restoration',
-    icon: FiFilter,
-    description: 'Restore degraded images by applying specialized noise reduction filters and spatial convolution techniques.',
-    tools: [
-      { id: 'restore_blur', label: 'Gaussian Blur (Denoise)', icon: FiDroplet, description: 'Apply spatial Gaussian convolution to suppress noise variance and clean up sensor grain.' },
-      { id: 'median', label: 'Median Filter', icon: FiFilter, description: 'Non-linear filter that replaces pixel values with local neighborhood medians, excellent for preserving edges.' },
-      { id: 'saltpepper', label: 'Salt & Pepper', icon: FiGrid, description: 'Simulate impulse noise (random white and black pixels) on the image to test restoration filters.' },
-    ],
-  },
-  {
-    id: 'geometric',
-    name: 'Geometric',
-    icon: FiLayout,
-    description: 'Modify spatial coordinates and pixel grids using affine transformation matrices and interpolation techniques.',
-    tools: [
-      { id: 'move', label: 'Move', icon: FiMove, description: 'Translate the image horizontally or vertically across the workspace coordinates.' },
-      { id: 'resize', label: 'Resize', icon: FiMaximize, description: 'Scale the image dimensions up or down using spatial interpolations like bilinear or nearest-neighbor.' },
-      { id: 'rotate', label: 'Rotate', icon: FiRotateCw, description: 'Pivot the image by a custom angle (0° to 360°) around its center coordinates.' },
-      { id: 'flip', label: 'Flip', icon: FiColumns, description: 'Mirror the image coordinate array horizontally, vertically, or along both axes.' },
-      { id: 'crop', label: 'Crop Mode', icon: FiCrop, description: 'Define and extract a customized rectangular sub-region of interest (ROI) from the main coordinate grid.' },
-    ],
-  },
-  {
-    id: 'edge',
-    name: 'Binary & Edge',
-    icon: FiActivity,
-    description: 'Detect structural boundaries, extract contours, and manipulate binary structures using localized kernel operations.',
-    tools: [
-      { id: 'threshold', label: 'Thresholding', icon: FiGrid, description: 'Segment the image into black and white pixels based on a chosen luminance cutoff level.' },
-      { id: 'canny', label: 'Canny', icon: FiActivity, description: 'An optimal multi-stage edge detector that suppresses noise, calculates gradients, performs non-maximum suppression, and applies hysteresis thresholding.' },
-      { id: 'sobel', label: 'Sobel', icon: FiTrendingUp, description: 'Calculate horizontal and vertical image gradients using Sobel kernels to locate strong, high-contrast edges.' },
-      { id: 'prewitt', label: 'Prewitt', icon: FiZap, description: 'Compute edge gradients using the Prewitt operator to emphasize horizontal and vertical lines.' },
-      { id: 'roberts', label: 'Roberts', icon: FiTriangle, description: 'Fast, simple 2D spatial gradient measurement to highlight diagonal edges.' },
-      { id: 'laplacian', label: 'Laplacian', icon: FiCircle, description: 'Compute the second derivative of the image to detect rapid intensity transitions.' },
-      { id: 'log', label: 'Laplacian of Gaussian', icon: FiWifi, description: 'Apply a Gaussian blur before Laplacian edge detection to minimize noise sensitivity.' },
-      { id: 'erosion', label: 'Erosion', icon: FiMinimize2, description: 'Shrink foreground objects in a binary image by stripping away outer boundary pixels using structuring elements.' },
-      { id: 'dilation', label: 'Dilation', icon: FiMaximize2, description: 'Expand foreground objects in a binary image by adding pixels to boundaries using structuring elements.' },
-    ],
-  },
-  {
-    id: 'color',
-    name: 'Color',
-    icon: FiImage,
-    description: 'Transform color spaces, isolate specific color channels, and tweak basic hue/saturation levels.',
-    tools: [
-      { id: 'grayscale', label: 'Grayscale', icon: FiMoon, description: 'Convert multi-channel RGB colors to single-channel intensity values using weighted luminance values.' },
-      { id: 'hsv', label: 'Hue / Saturation', icon: FiAperture, description: 'Adjust pure color shade (Hue) and color intensity/vibrancy (Saturation) in the HSV model.' },
-      { id: 'channel_r', label: 'Red Channel', icon: FiImage, description: 'Isolate the 8-bit red component array of the original RGB spectrum.' },
-      { id: 'channel_g', label: 'Green Channel', icon: FiImage, description: 'Isolate the 8-bit green component array of the original RGB spectrum.' },
-      { id: 'channel_b', label: 'Blue Channel', icon: FiImage, description: 'Isolate the 8-bit blue component array of the original RGB spectrum.' },
-    ],
-  },
-  {
-    id: 'segmentation',
-    name: 'Segmentation',
-    icon: FiBox,
-    description: 'Partition the image into distinct regions, contours, or masks to isolate important foreground elements.',
-    tools: [
-      { id: 'seg_threshold', label: 'Threshold-based', icon: FiGrid, description: 'Extract objects from backgrounds by grouping pixel values above or below a chosen limit.' },
-      { id: 'seg_edge', label: 'Edge-based', icon: FiActivity, description: 'Delineate object boundaries by grouping detected edges into continuous contours.' },
-      { id: 'seg_region', label: 'Region-based', icon: FiPieChart, description: 'Group neighboring pixels with similar intensity properties into homogeneous regions.' },
-    ],
-  },
-  {
-    id: 'histogram',
-    name: 'Histogram',
-    icon: FiBarChart,
-    description: 'Visualize the numerical distribution of pixel intensities to evaluate contrast and color spread.',
-    tools: [
-      { id: 'histogram', label: 'Grayscale Histogram', icon: FiBarChart, description: 'Plot the distribution of grey level intensities from absolute black (0) to pure white (255).' },
-      { id: 'histogram_rgb', label: 'RGB Histogram', icon: FiBarChart2, description: 'Generate overlapping frequency distributions for the Red, Green, and Blue color channels.' },
-    ],
-  },
-  {
-    id: 'compression',
-    name: 'Compression',
-    icon: FiScissors,
-    description: 'Reduce the storage footprint using lossy quantization, standard JPEG simulation, or lossless encoding algorithms.',
-    tools: [
-      { id: 'jpeg', label: 'JPEG Quality', icon: FiImage, description: 'Simulate lossy JPEG compression using block-based discrete cosine transform (DCT) and quantization.' },
-      { id: 'rle', label: 'RLE', icon: FiCpu, description: 'Apply Run-Length Encoding to compress contiguous sequences of identical pixel values losslessly.' },
-      { id: 'huffman', label: 'Huffman', icon: FiCode, description: 'Use variable-length entropy coding to compress symbols based on their statistical frequency.' },
-      { id: 'arithmetic', label: 'Arithmetic', icon: FiCode, description: 'Lossless compression that maps a stream of symbols to a single high-precision decimal range.' },
-      { id: 'lzw', label: 'LZW', icon: FiCode, description: 'Compress images losslessly using dictionary-based string matching (Lempel-Ziv-Welch).' },
-      { id: 'quantization', label: 'Quantization', icon: FiTarget, description: 'Reduce the total number of colors by mapping pixel intensities into a lower bit-depth.' },
-    ],
-  },
-  {
-    id: 'cnn',
-    name: 'CNN',
-    icon: FiTarget,
-    description: 'Leverage Convolutional Neural Networks to automatically locate, classify, and identify objects in the image.',
-    tools: [
-      { id: 'cnn_detect', label: 'Object Recognition', icon: FiTarget, description: 'Run a deep learning model to detect and classify complex visual classes (e.g., humans or animals).' },
-    ],
-  },
-];
-
-const defaultParams = {
-  brightness: 0,
-  contrast: 0,
-  gamma: 1,
-  rotate: 0,
-  flipMode: 'horizontal',
-  resizeWidth: 400,
-  resizeHeight: 400,
-  cropX: 50,
-  cropY: 50,
-  cropWidth: 200,
-  cropHeight: 200,
-  moveX: 0,
-  moveY: 0,
-  hsvHue: 0,
-  hsvSaturation: 0,
-  jpegQuality: 80,
-  // Enhancement / Blur
-  sharpenAmount: 2.0,
-  blurKsize: 11,
-  blurSigma: 3.0,
-  // Restoration
-  medianKsize: 3,
-  noiseAmount: 0.05,
-  // Binary & Edge
-  threshold: 128,
-  // Segmentation
-  segThreshold: 128,
-  segRegions: 3,
-  // Compression
-  quantBits: 4,
-};
-
-// !!!!!!!!!!!!!!ENDPOINT!!!!!!!!!!!!!!
-const toolEndpointMap = {
-  // Enhancement
-  brightness: '/api/enhancement/brightness-contrast',
-  sharpen: '/api/enhancement/sharpen',
-  clahe: '/api/enhancement/histogram-equalization',
-  // Restoration
-  restore_blur: '/api/restoration/gaussian-blur',
-  median: '/api/restoration/median',
-  saltpepper: '/api/restoration/denoise',
-  // Geometric
-  move: '/api/geometric/translate',
-  resize: '/api/geometric/resize',
-  rotate: '/api/geometric/rotate',
-  flip: '/api/geometric/flip',
-  crop: '/api/geometric/crop',
-  // Color
-  grayscale: '/api/color/grayscale',
-  hsv: '/api/color/hsv',
-  channel_r: '/api/color/channel?channel=r',
-  channel_g: '/api/color/channel?channel=g',
-  channel_b: '/api/color/channel?channel=b',
-  // Binary & Edge
-  threshold: '/api/edge/threshold',
-  canny: '/api/edge/canny',
-  sobel: '/api/edge/sobel',
-  prewitt: '/api/edge/prewitt',
-  roberts: '/api/edge/roberts',
-  laplacian: '/api/edge/laplacian',
-  log: '/api/edge/log',
-  erosion: '/api/morphology/erosion',
-  dilation: '/api/morphology/dilation',
-  // Histogram
-  histogram: '/api/histogram/grayscale',
-  histogram_rgb: '/api/histogram/rgb',
-  // Segmentation
-  seg_threshold: '/api/segmentation/threshold',
-  seg_edge: '/api/segmentation/edge',
-  seg_region: '/api/segmentation/region',
-  // Compression
-  jpeg: '/api/compression/jpeg',
-  rle: '/api/compression/rle',
-  huffman: '/api/compression/huffman',
-  arithmetic: '/api/compression/arithmetic',
-  lzw: '/api/compression/lzw',
-  quantization: '/api/compression/quantization',
-  // CNN
-  cnn_detect: '/api/cnn/detect',
-};
-
-function clamp(value, min, max) {
-  return Math.min(Math.max(value, min), max);
-}
-
-// Maps frontend slider params to what each backend endpoint expects
-function buildBackendParams(toolId, params) {
-  switch (toolId) {
-    case 'brightness':
-      return {
-        brightness: params.brightness,
-        // Backend uses multiplier (1.0 = no change); slider is -100..100 (0 = no change)
-        contrast: Number(((params.contrast + 100) / 100).toFixed(3)),
-      };
-    case 'sharpen':
-      return { amount: params.sharpenAmount };
-    case 'blur':
-      return { ksize: params.blurKsize, sigma: params.blurSigma };
-    case 'restore_blur':
-      return { kernel_size: params.blurKsize, sigma: params.blurSigma };
-    case 'median':
-      return { kernel_size: params.medianKsize };
-    case 'saltpepper':
-      return { noise_amount: params.noiseAmount };
-    case 'rotate':
-      return { angle: params.rotate };
-    case 'flip':
-      return { mode: params.flipMode };
-    case 'crop':
-      return { x: params.cropX, y: params.cropY, width: params.cropWidth, height: params.cropHeight };
-    default:
-      return params;
-  }
-}
-
-// ----------------------------------------------------------------------
-// CUSTOM HOOKS
-// ----------------------------------------------------------------------
-
-function useDebounce(value, delay) {
-  const [debouncedValue, setDebouncedValue] = useState(value);
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedValue(prev => JSON.stringify(prev) === JSON.stringify(value) ? prev : value);
-    }, delay);
-    return () => clearTimeout(handler);
-  }, [value, delay]);
-  return debouncedValue;
-}
-
-// ----------------------------------------------------------------------
-// COMPONENTS
-// ----------------------------------------------------------------------
-
-function PropertiesPanel({ tool, params, setParams, canvasRef, onApply, loading }) {
-  const field = (label, element) => (
-    <div className="flex flex-col gap-2.5">
-      <div className="flex justify-between items-center">
-        <label className="text-xs font-semibold text-zinc-400 uppercase tracking-widest">{label}</label>
-      </div>
-      {element}
-    </div>
-  );
-
-  const inputClass = "w-full bg-zinc-950 border border-zinc-800 rounded-md px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/50 transition-all shadow-inner";
-  const rangeClass = "w-full accent-cyan-400 h-1.5 bg-zinc-800 rounded-lg appearance-none cursor-pointer";
-
-  const renderControls = () => {
-    switch (tool.id) {
-      case 'brightness':
-        return (
-          <>
-            {field('Brightness', <input type="range" min="-100" max="100" value={params.brightness} onChange={(e) => setParams(p => ({ ...p, brightness: Number(e.target.value) }))} className={rangeClass} />)}
-            {field('Contrast', <input type="range" min="-100" max="100" value={params.contrast} onChange={(e) => setParams(p => ({ ...p, contrast: Number(e.target.value) }))} className={rangeClass} />)}
-            {field('Gamma', <input type="number" min="0.1" max="5" step="0.1" value={params.gamma} onChange={(e) => setParams(p => ({ ...p, gamma: Number(e.target.value) }))} className={inputClass} />)}
-          </>
-        );
-      case 'sharpen':
-        return (
-          <>
-            {field('Intensity', <input type="range" min="0.5" max="10" step="0.5" value={params.sharpenAmount} onChange={(e) => setParams(p => ({ ...p, sharpenAmount: Number(e.target.value) }))} className={rangeClass} />)}
-            <div className="flex justify-end text-xs text-zinc-400 font-mono">{params.sharpenAmount}x</div>
-          </>
-        );
-      case 'blur':
-      case 'restore_blur':
-        return (
-          <>
-            {field('Kernel Size', <input type="range" min="3" max="31" step="2" value={params.blurKsize} onChange={(e) => setParams(p => ({ ...p, blurKsize: Number(e.target.value) }))} className={rangeClass} />)}
-            <div className="flex justify-end text-xs text-zinc-400 font-mono">{params.blurKsize}×{params.blurKsize}</div>
-            
-            {field('Sigma', <input type="range" min="0.1" max="10.0" step="0.1" value={params.blurSigma} onChange={(e) => setParams(p => ({ ...p, blurSigma: Number(e.target.value) }))} className={rangeClass} />)}
-            <div className="flex justify-end text-xs text-zinc-400 font-mono">{params.blurSigma}</div>
-          </>
-        );
-      case 'rotate':
-        return (
-          <>
-            {field('Angle (°)', <input type="range" min="0" max="360" value={params.rotate} onChange={(e) => setParams(p => ({ ...p, rotate: Number(e.target.value) }))} className={rangeClass} />)}
-            <div className="flex justify-end text-xs text-zinc-400 font-mono">{params.rotate}°</div>
-          </>
-        );
-      case 'flip':
-        return (
-          <>
-            {field('Direction', (
-              <select value={params.flipMode} onChange={(e) => setParams(p => ({ ...p, flipMode: e.target.value }))} className={inputClass}>
-                <option value="horizontal">Horizontal</option>
-                <option value="vertical">Vertical</option>
-                <option value="both">Both</option>
-              </select>
-            ))}
-          </>
-        );
-      case 'move':
-        return (
-          <>
-            {field('Position X / Y', (
-              <div className="grid grid-cols-2 gap-3">
-                <div className="flex flex-col">
-                  <span className="text-[10px] text-zinc-500 mb-1">X (px)</span>
-                  <input
-                    type="number"
-                    value={params.moveX}
-                    onChange={(e) => setParams(p => ({ ...p, moveX: e.target.value === '' ? '' : Number(e.target.value) }))}
-                    onBlur={(e) => {
-                      const cw = canvasRef?.current?.clientWidth ?? 9999;
-                      const margin = 48;
-                      setParams(p => ({ ...p, moveX: clamp(Number(e.target.value) || 0, -(p.resizeWidth - margin), cw - margin) }));
-                    }}
-                    className={inputClass}
-                  />
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-[10px] text-zinc-500 mb-1">Y (px)</span>
-                  <input
-                    type="number"
-                    value={params.moveY}
-                    onChange={(e) => setParams(p => ({ ...p, moveY: e.target.value === '' ? '' : Number(e.target.value) }))}
-                    onBlur={(e) => {
-                      const ch = canvasRef?.current?.clientHeight ?? 9999;
-                      const margin = 48;
-                      setParams(p => ({ ...p, moveY: clamp(Number(e.target.value) || 0, -(p.resizeHeight - margin), ch - margin) }));
-                    }}
-                    className={inputClass}
-                  />
-                </div>
-              </div>
-            ))}
-            <div className="bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-xs p-3 rounded-md">
-              Drag the image on the canvas — the values above will update automatically!
-            </div>
-          </>
-        );
-      case 'resize':
-        return (
-          <>
-            {field('Size W / H', (
-              <div className="grid grid-cols-2 gap-3">
-                <div className="flex flex-col">
-                  <span className="text-[10px] text-zinc-500 mb-1">Width (px)</span>
-                  <input
-                    type="number"
-                    min="48"
-                    value={params.resizeWidth}
-                    onChange={(e) => setParams(p => ({ ...p, resizeWidth: e.target.value === '' ? '' : Number(e.target.value) }))}
-                    onBlur={(e) => {
-                      const cw = canvasRef?.current?.clientWidth ?? 8192;
-                      setParams(p => ({ ...p, resizeWidth: clamp(Number(e.target.value) || 48, 48, cw) }));
-                    }}
-                    className={inputClass}
-                  />
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-[10px] text-zinc-500 mb-1">Height (px)</span>
-                  <input
-                    type="number"
-                    min="48"
-                    value={params.resizeHeight}
-                    onChange={(e) => setParams(p => ({ ...p, resizeHeight: e.target.value === '' ? '' : Number(e.target.value) }))}
-                    onBlur={(e) => {
-                      const ch = canvasRef?.current?.clientHeight ?? 8192;
-                      setParams(p => ({ ...p, resizeHeight: clamp(Number(e.target.value) || 48, 48, ch) }));
-                    }}
-                    className={inputClass}
-                  />
-                </div>
-              </div>
-            ))}
-            <div className="bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-xs p-3 rounded-md">
-              Drag the image corners on the canvas — the values above will update automatically!
-            </div>
-          </>
-        );
-      case 'crop':
-        return (
-          <>
-            {field('Position X/Y', <div className="grid grid-cols-2 gap-3">
-              <input
-                type="number"
-                min="0"
-                value={params.cropX}
-                onChange={(e) => setParams(p => ({ ...p, cropX: e.target.value === '' ? '' : Math.max(0, Number(e.target.value)) }))}
-                onBlur={(e) => setParams(p => ({ ...p, cropX: Math.max(0, Number(e.target.value) || 0) }))}
-                className={inputClass}
-                placeholder="X"
-              />
-              <input
-                type="number"
-                min="0"
-                value={params.cropY}
-                onChange={(e) => setParams(p => ({ ...p, cropY: e.target.value === '' ? '' : Math.max(0, Number(e.target.value)) }))}
-                onBlur={(e) => setParams(p => ({ ...p, cropY: Math.max(0, Number(e.target.value) || 0) }))}
-                className={inputClass}
-                placeholder="Y"
-              />
-            </div>)}
-            {field('Size W/H', <div className="grid grid-cols-2 gap-3">
-              <input
-                type="number"
-                min="16"
-                value={params.cropWidth}
-                onChange={(e) => setParams(p => ({ ...p, cropWidth: e.target.value === '' ? '' : Number(e.target.value) }))}
-                onBlur={(e) => setParams(p => ({ ...p, cropWidth: clamp(Number(e.target.value) || 16, 16, 8192) }))}
-                className={inputClass}
-                placeholder="W"
-              />
-              <input
-                type="number"
-                min="16"
-                value={params.cropHeight}
-                onChange={(e) => setParams(p => ({ ...p, cropHeight: e.target.value === '' ? '' : Number(e.target.value) }))}
-                onBlur={(e) => setParams(p => ({ ...p, cropHeight: clamp(Number(e.target.value) || 16, 16, 8192) }))}
-                className={inputClass}
-                placeholder="H"
-              />
-            </div>)}
-            <div className="bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-xs p-3 rounded-md italic">
-              Draw a box directly on the canvas to crop visually!
-            </div>
-          </>
-        );
-      case 'hsv':
-        return (
-          <>
-            {field('Hue', <input type="range" min="-180" max="180" value={params.hsvHue} onChange={(e) => setParams(p => ({ ...p, hsvHue: Number(e.target.value) }))} className={rangeClass} />)}
-            {field('Saturation', <input type="range" min="-100" max="100" value={params.hsvSaturation} onChange={(e) => setParams(p => ({ ...p, hsvSaturation: Number(e.target.value) }))} className={rangeClass} />)}
-          </>
-        );
-      case 'jpeg':
-        return (
-          <>
-            {field('Quality', <input type="range" min="10" max="95" value={params.jpegQuality} onChange={(e) => setParams(p => ({ ...p, jpegQuality: Number(e.target.value) }))} className={rangeClass} />)}
-            <div className="flex justify-end text-xs text-zinc-400 font-mono">{params.jpegQuality}%</div>
-          </>
-        );
-      case 'median':
-        return (
-          <>
-            {field('Kernel Size', <input type="range" min="3" max="15" step="2" value={params.medianKsize} onChange={(e) => setParams(p => ({ ...p, medianKsize: Number(e.target.value) }))} className={rangeClass} />)}
-            <div className="flex justify-end text-xs text-zinc-400 font-mono">{params.medianKsize}×{params.medianKsize}</div>
-          </>
-        );
-      case 'saltpepper':
-        return (
-          <>
-            {field('Noise Amount', <input type="range" min="0.01" max="0.3" step="0.01" value={params.noiseAmount} onChange={(e) => setParams(p => ({ ...p, noiseAmount: Number(e.target.value) }))} className={rangeClass} />)}
-            <div className="flex justify-end text-xs text-zinc-400 font-mono">{(params.noiseAmount * 100).toFixed(0)}%</div>
-          </>
-        );
-      case 'threshold':
-        return (
-          <>
-            {field('Threshold Value', <input type="range" min="0" max="255" value={params.threshold} onChange={(e) => setParams(p => ({ ...p, threshold: Number(e.target.value) }))} className={rangeClass} />)}
-            <div className="flex justify-end text-xs text-zinc-400 font-mono">{params.threshold} / 255</div>
-          </>
-        );
-      case 'seg_threshold':
-        return (
-          <>
-            {field('Threshold Value', <input type="range" min="0" max="255" value={params.segThreshold} onChange={(e) => setParams(p => ({ ...p, segThreshold: Number(e.target.value) }))} className={rangeClass} />)}
-            <div className="flex justify-end text-xs text-zinc-400 font-mono">{params.segThreshold} / 255</div>
-          </>
-        );
-      case 'seg_region':
-        return (
-          <>
-            {field('Number of Regions', <input type="range" min="2" max="10" value={params.segRegions} onChange={(e) => setParams(p => ({ ...p, segRegions: Number(e.target.value) }))} className={rangeClass} />)}
-            <div className="flex justify-end text-xs text-zinc-400 font-mono">{params.segRegions} regions</div>
-          </>
-        );
-      case 'quantization':
-        return (
-          <>
-            {field('Bit Depth', <input type="range" min="1" max="8" value={params.quantBits} onChange={(e) => setParams(p => ({ ...p, quantBits: Number(e.target.value) }))} className={rangeClass} />)}
-            <div className="flex justify-end text-xs text-zinc-400 font-mono">{params.quantBits} bits</div>
-          </>
-        );
-      default:
-        return (
-          <div className="bg-zinc-800/50 border border-zinc-700/50 rounded-md p-4 text-center">
-            <span className="text-sm text-zinc-400">No parameters required.</span>
-          </div>
-        );
-    }
-  };
-
-  return (
-    <div className="flex flex-col h-full overflow-y-auto custom-scrollbar">
-      <div className="p-5 space-y-6 flex-1">
-        {/* Active Tool Header */}
-        <div className="flex flex-col gap-3 pb-4 border-b border-zinc-800/50">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-md bg-zinc-800 flex items-center justify-center text-cyan-400">
-              {tool.icon && <tool.icon size={16} />}
-            </div>
-            <div>
-              <h3 className="text-sm font-medium text-zinc-100">{tool.label}</h3>
-              <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-mono">Active Tool</p>
-            </div>
-          </div>
-          {tool.description && (
-            <p className="text-xs text-zinc-400 leading-relaxed bg-zinc-950/40 p-3 rounded-lg border border-zinc-800/40 font-normal">
-              {tool.description}
-            </p>
-          )}
-        </div>
-
-        {/* Sliders / Inputs */}
-        <div className="space-y-6">
-          {renderControls()}
-        </div>
-
-        {/* Apply Filter Button */}
-        {tool.id !== 'move' && tool.id !== 'resize' && (
-          <button
-            onClick={onApply}
-            disabled={loading}
-            className="w-full mt-2 bg-cyan-500 hover:bg-cyan-400 disabled:opacity-50 disabled:cursor-not-allowed text-zinc-950 font-semibold text-xs py-2.5 rounded-lg transition-all flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/20"
-          >
-            {loading ? (
-              <><div className="w-3 h-3 border-2 border-zinc-950/30 border-t-zinc-950 rounded-full animate-spin" /> Processing…</>
-            ) : (
-              'Apply Filter'
-            )}
-          </button>
-        )}
-      </div>
-
-      {/* Placeholders for Professional UX */}
-      <div className="p-5 space-y-6 bg-zinc-950/30 border-t border-zinc-800/50">
-        <div>
-          <h3 className="text-xs font-semibold text-zinc-500 uppercase tracking-widest mb-3 flex items-center gap-2">
-            <FiLayers /> Layers
-          </h3>
-          <div className="bg-zinc-900 rounded-md p-2 border border-zinc-800 flex items-center gap-3 hover:bg-zinc-800 transition-colors cursor-pointer group">
-            <div className="w-8 h-8 bg-zinc-800 rounded border border-zinc-700 overflow-hidden flex-shrink-0">
-              <div className="w-full h-full bg-cyan-500/20"></div>
-            </div>
-            <span className="text-xs text-zinc-300 font-medium group-hover:text-white">Background</span>
-            <FiEye className="text-zinc-500 ml-auto group-hover:text-zinc-300" size={14} />
-          </div>
-        </div>
-
-        <div>
-          <h3 className="text-xs font-semibold text-zinc-500 uppercase tracking-widest mb-3 flex items-center gap-2">
-            <FiClock /> History
-          </h3>
-          <div className="space-y-1">
-            <div className="text-xs text-zinc-300 flex items-center gap-2 px-2 py-1.5 rounded bg-cyan-500/10 border border-cyan-500/20">
-              <div className="w-1.5 h-1.5 rounded-full bg-cyan-400"></div> 
-              Current State
-            </div>
-            <div className="text-xs text-zinc-500 flex items-center gap-2 px-2 py-1.5 hover:bg-zinc-900 rounded cursor-pointer transition-colors">
-              <div className="w-1.5 h-1.5 rounded-full bg-zinc-600"></div> 
-              Image Uploaded
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ----------------------------------------------------------------------
-// MAIN APP
-// ----------------------------------------------------------------------
+const HISTORY_LIMIT = 25;
+const ZOOM_STEP = 10;
+const MIN_ZOOM = 25;
+const MAX_ZOOM = 300;
 
 function App() {
   const [originalFile, setOriginalFile] = useState(null);
   const [originalPreview, setOriginalPreview] = useState('');
   const [processedPreview, setProcessedPreview] = useState('');
-  
+
   const [selectedCategory, setSelectedCategory] = useState(toolGroups[0].id);
   const [selectedTool, setSelectedTool] = useState(toolGroups[0].tools[0].id);
-  
+
   const [params, setParams] = useState(defaultParams);
 
   const [loading, setLoading] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [showCompare, setShowCompare] = useState(false);
+  const [zoom, setZoom] = useState(100);
+  const [undoStack, setUndoStack] = useState([]);
+  const [redoStack, setRedoStack] = useState([]);
   const canvasRef = useRef(null);
 
   // Histogram compare state
@@ -632,6 +52,9 @@ function App() {
       setOriginalPreview(URL.createObjectURL(file));
       setProcessedPreview('');
       setParams(defaultParams);
+      setUndoStack([]);
+      setRedoStack([]);
+      setZoom(100);
     },
   });
 
@@ -646,6 +69,31 @@ function App() {
   const activeCategory = toolGroups.find(g => g.id === selectedCategory);
   const activeTool = activeCategory?.tools.find(t => t.id === selectedTool);
 
+  const createHistorySnapshot = () => ({
+    processedPreview,
+    processedBlob,
+    params,
+    selectedCategory,
+    selectedTool,
+    showCompare,
+  });
+
+  const restoreHistorySnapshot = (snapshot) => {
+    setProcessedPreview(snapshot.processedPreview);
+    setProcessedBlob(snapshot.processedBlob);
+    setParams(snapshot.params);
+    setSelectedCategory(snapshot.selectedCategory);
+    setSelectedTool(snapshot.selectedTool);
+    setShowCompare(snapshot.showCompare);
+    setOriginalHistogramUrl('');
+    setProcessedHistogramUrl('');
+  };
+
+  const pushHistorySnapshot = (snapshot) => {
+    setUndoStack(stack => [...stack.slice(-(HISTORY_LIMIT - 1)), snapshot]);
+    setRedoStack([]);
+  };
+
   const handleRemoveImage = (e) => {
     e.stopPropagation();
     setOriginalFile(null);
@@ -655,15 +103,43 @@ function App() {
     setOriginalHistogramUrl('');
     setProcessedHistogramUrl('');
     setShowCompare(false);
+    setUndoStack([]);
+    setRedoStack([]);
+    setZoom(100);
   };
 
   const handleReset = () => {
+    pushHistorySnapshot(createHistorySnapshot());
     setProcessedPreview('');
     setProcessedBlob(null);
     setOriginalHistogramUrl('');
     setProcessedHistogramUrl('');
     setShowCompare(false);
     setParams(defaultParams);
+  };
+
+  const handleUndo = () => {
+    if (undoStack.length === 0) return;
+    const previous = undoStack[undoStack.length - 1];
+    setRedoStack(stack => [...stack.slice(-(HISTORY_LIMIT - 1)), createHistorySnapshot()]);
+    setUndoStack(stack => stack.slice(0, -1));
+    restoreHistorySnapshot(previous);
+  };
+
+  const handleRedo = () => {
+    if (redoStack.length === 0) return;
+    const next = redoStack[redoStack.length - 1];
+    setUndoStack(stack => [...stack.slice(-(HISTORY_LIMIT - 1)), createHistorySnapshot()]);
+    setRedoStack(stack => stack.slice(0, -1));
+    restoreHistorySnapshot(next);
+  };
+
+  const handleZoomOut = () => {
+    setZoom(value => Math.max(MIN_ZOOM, value - ZOOM_STEP));
+  };
+
+  const handleZoomIn = () => {
+    setZoom(value => Math.min(MAX_ZOOM, value + ZOOM_STEP));
   };
 
   const handleExport = (format) => {
@@ -709,6 +185,7 @@ function App() {
     try {
       const backendParams = buildBackendParams(activeTool.id, params);
       const blob = await sendImageRequest(endpoint, originalFile, backendParams);
+      pushHistorySnapshot(createHistorySnapshot());
       setProcessedBlob(blob);
       setProcessedPreview(URL.createObjectURL(blob));
     } catch (error) {
@@ -717,7 +194,6 @@ function App() {
       setLoading(false);
     }
   };
-
 
   // Canvas Mode detection
   const isCropMode = selectedTool === 'crop';
@@ -770,358 +246,76 @@ function App() {
 
   return (
     <div className="h-screen w-screen overflow-hidden bg-zinc-950 text-zinc-100 font-sans flex flex-col selection:bg-cyan-500/30">
-      
-      {/* --------------------------------------------------- */}
-      {/* TOP BAR */}
-      {/* --------------------------------------------------- */}
-      <header className="h-12 border-b border-zinc-800 bg-zinc-900 flex items-center justify-between px-4 shrink-0 z-30 relative shadow-sm">
-        <div className="flex items-center gap-3">
-          <div className="w-7 h-7 rounded bg-gradient-to-br from-cyan-400 to-blue-600 text-white flex items-center justify-center font-bold text-sm shadow-md shadow-cyan-500/20">M</div>
-          <span className="font-semibold tracking-tight text-xs text-zinc-200">Mini Photoshop</span>
-        </div>
-        
-        <div className="flex items-center gap-1 bg-zinc-950/50 p-1 rounded-md border border-zinc-800/80">
-          <button className="p-1.5 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded transition-colors" title="Undo"><FiCornerUpLeft size={14} /></button>
-          <button className="p-1.5 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded transition-colors" title="Redo"><FiCornerUpRight size={14} /></button>
-          <div className="w-px h-3 bg-zinc-700 mx-1"></div>
-          <button className="p-1.5 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded transition-colors" title="Zoom Out"><FiMinus size={14} /></button>
-          <span className="text-[10px] text-zinc-300 font-medium px-2 w-12 text-center">100%</span>
-          <button className="p-1.5 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded transition-colors" title="Zoom In"><FiPlus size={14} /></button>
-        </div>
+      <Header
+        originalFile={originalFile}
+        originalPreview={originalPreview}
+        processedPreview={processedPreview}
+        loading={loading}
+        isHistogramMode={isHistogramMode}
+        showCompare={showCompare}
+        setShowCompare={setShowCompare}
+        showExportMenu={showExportMenu}
+        setShowExportMenu={setShowExportMenu}
+        onReset={handleReset}
+        onExport={handleExport}
+        onUndo={handleUndo}
+        onRedo={handleRedo}
+        canUndo={undoStack.length > 0}
+        canRedo={redoStack.length > 0}
+        zoom={zoom}
+        onZoomOut={handleZoomOut}
+        onZoomIn={handleZoomIn}
+        canZoomOut={zoom > MIN_ZOOM}
+        canZoomIn={zoom < MAX_ZOOM}
+      />
 
-        <div className="flex items-center gap-3">
-          {originalFile && (
-            <div className="flex items-center gap-2 text-[10px] text-zinc-500 font-mono hidden md:flex">
-              {loading && <FiActivity className="animate-spin text-cyan-500" />}
-              <span>{loading ? 'Processing...' : 'Ready'}</span>
-            </div>
-          )}
-
-          {/* Compare toggle — only when a processed result exists */}
-          {processedPreview && !isHistogramMode && (
-            <button
-              onClick={() => setShowCompare(v => !v)}
-              className={`px-3 py-1.5 rounded text-xs font-medium transition-all border ${
-                showCompare
-                  ? 'bg-cyan-500/10 text-cyan-400 border-cyan-500/40'
-                  : 'text-zinc-400 hover:text-zinc-200 border-zinc-700 hover:border-zinc-600'
-              }`}
-              title="Toggle before/after compare"
-            >
-              {showCompare ? 'Exit Compare' : 'Compare'}
-            </button>
-          )}
-
-          {/* Reset button — only when a processed result exists */}
-          {processedPreview && (
-            <button
-              onClick={handleReset}
-              className="text-zinc-400 hover:text-red-400 border border-zinc-700 hover:border-red-500/50 px-3 py-1.5 rounded text-xs font-medium transition-colors"
-              title="Reset to original image"
-            >
-              Reset
-            </button>
-          )}
-          
-          {/* Export Dropdown */}
-          <div className="relative">
-            <button
-              onClick={() => setShowExportMenu(v => !v)}
-              disabled={!originalPreview}
-              className="bg-zinc-100 hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed text-zinc-900 px-3 py-1.5 rounded text-xs font-semibold transition-colors shadow-sm flex items-center gap-1.5"
-            >
-              Export As
-              <span className="text-zinc-500 text-[10px]">{showExportMenu ? '▲' : '▼'}</span>
-            </button>
-
-            {showExportMenu && (
-              <>
-                {/* Backdrop to close */}
-                <div className="fixed inset-0 z-40" onClick={() => setShowExportMenu(false)} />
-                <div className="absolute right-0 top-full mt-2 z-50 bg-zinc-900 border border-zinc-700 rounded-lg shadow-2xl overflow-hidden min-w-[140px]">
-                  {[
-                    { label: 'PNG', sub: 'Lossless', format: 'png' },
-                    { label: 'JPG / JPEG', sub: 'Compressed', format: 'jpeg' },
-                    { label: 'BMP', sub: 'Uncompressed', format: 'bmp' },
-                  ].map(({ label, sub, format }) => (
-                    <button
-                      key={format}
-                      onClick={() => handleExport(format)}
-                      className="w-full flex flex-col items-start px-4 py-3 hover:bg-zinc-800 transition-colors border-b border-zinc-800 last:border-0"
-                    >
-                      <span className="text-xs font-semibold text-zinc-100">{label}</span>
-                      <span className="text-[10px] text-zinc-500">{sub}</span>
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-      </header>
-
-      {/* --------------------------------------------------- */}
-      {/* MAIN WORKSPACE (3-PANE LAYOUT) */}
-      {/* --------------------------------------------------- */}
       <div className="flex flex-1 overflow-hidden">
-        
-        {/* --- LEFT SIDEBAR (TOOLS) --- */}
-        <aside className="w-16 border-r border-zinc-800 bg-zinc-900 shrink-0 flex flex-col py-3 gap-1 z-20 shadow-xl">
-          {toolGroups.map((group) => {
-            const Icon = group.icon;
-            const isActive = selectedCategory === group.id;
-            return (
-              <button
-                key={group.id}
-                onClick={() => setSelectedCategory(group.id)}
-                className={`relative group flex flex-col items-center justify-center h-14 mx-2 rounded-xl transition-all ${
-                  isActive ? 'bg-zinc-800 text-cyan-400 shadow-inner' : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/50'
-                }`}
-                title={group.name}
-              >
-                <Icon size={20} className={isActive ? 'drop-shadow-[0_0_8px_rgba(34,211,238,0.4)]' : ''} />
-                
-                {/* Tooltip */}
-                <div className="absolute left-full ml-3 px-2 py-1 bg-zinc-800 border border-zinc-700 text-zinc-200 text-xs rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50 shadow-lg">
-                  {group.name}
-                </div>
-              </button>
-            );
-          })}
-        </aside>
+        <CategorySidebar
+          toolGroups={toolGroups}
+          selectedCategory={selectedCategory}
+          onSelectCategory={setSelectedCategory}
+        />
 
-        {/* --- INNER SIDEBAR (SUBTOOLS) --- */}
-        <aside className="w-56 border-r border-zinc-800 bg-[#121214] shrink-0 flex flex-col z-10">
-          <div className="px-4 py-3 border-b border-zinc-800/50 space-y-1 bg-zinc-950/20">
-            <h2 className="text-xs font-semibold text-zinc-300">{activeCategory?.name}</h2>
-            {activeCategory?.description && (
-              <p className="text-[10px] text-zinc-500 leading-relaxed font-normal">
-                {activeCategory.description}
-              </p>
-            )}
-          </div>
-          <div className="flex-1 overflow-y-auto p-2 space-y-0.5 custom-scrollbar">
-            {activeCategory?.tools.map((tool) => {
-              const ToolIcon = tool.icon;
-              const isActive = selectedTool === tool.id;
-              return (
-                <button
-                  key={tool.id}
-                  onClick={() => setSelectedTool(tool.id)}
-                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${
-                    isActive 
-                      ? 'bg-cyan-500/10 text-cyan-400 font-medium' 
-                      : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/40'
-                  }`}
-                >
-                  {ToolIcon && <ToolIcon size={14} className={isActive ? "text-cyan-400" : "text-zinc-500"} />}
-                  <span className="text-xs">{tool.label}</span>
-                </button>
-              );
-            })}
-          </div>
-        </aside>
+        <ToolSidebar
+          activeCategory={activeCategory}
+          selectedTool={selectedTool}
+          onSelectTool={setSelectedTool}
+        />
 
-        {/* --- CENTER CANVAS --- */}
-        <main className="flex-1 relative flex flex-col min-w-0 bg-[#09090b] checkerboard">
+        <CanvasArea
+          isHistogramMode={isHistogramMode}
+          originalFile={originalFile}
+          histogramLoading={histogramLoading}
+          originalHistogramUrl={originalHistogramUrl}
+          processedHistogramUrl={processedHistogramUrl}
+          showCompare={showCompare}
+          processedPreview={processedPreview}
+          originalPreview={originalPreview}
+          loading={loading}
+          getRootProps={getRootProps}
+          getInputProps={getInputProps}
+          isDragActive={isDragActive}
+          canvasRef={canvasRef}
+          isCropMode={isCropMode}
+          cropState={cropState}
+          setParams={setParams}
+          currentImageSrc={currentImageSrc}
+          params={params}
+          onRemoveImage={handleRemoveImage}
+          zoom={zoom}
+        />
 
-          {/* -------- HISTOGRAM COMPARE MODE -------- */}
-          {isHistogramMode && originalFile ? (
-            <div className="flex-1 flex gap-0 p-6 overflow-hidden">
-
-              {/* Before Panel */}
-              <div className="flex-1 flex flex-col gap-3 animate-slide-in-left overflow-hidden">
-                <div className="flex items-center gap-2 px-1">
-                  <div className="w-2 h-2 bg-zinc-400 rounded-full"></div>
-                  <span className="text-xs font-semibold text-zinc-300 uppercase tracking-widest">Before</span>
-                </div>
-                <div className="flex-1 bg-zinc-900 rounded-2xl border border-zinc-800 flex items-center justify-center overflow-hidden shadow-xl">
-                  {histogramLoading ? (
-                    <div className="flex flex-col items-center gap-3">
-                      <div className="w-6 h-6 border-2 border-cyan-500/30 border-t-cyan-500 rounded-full animate-spin"></div>
-                      <span className="text-xs text-zinc-500">Generating histogram…</span>
-                    </div>
-                  ) : originalHistogramUrl ? (
-                    <img src={originalHistogramUrl} alt="Before Histogram" className="max-w-full max-h-full object-contain p-4" />
-                  ) : (
-                    <span className="text-xs text-zinc-600">No histogram available</span>
-                  )}
-                </div>
-              </div>
-
-              {/* Divider */}
-              <div className="w-px mx-6 bg-zinc-800 self-stretch my-2 shrink-0"></div>
-
-              {/* After Panel */}
-              <div className="flex-1 flex flex-col gap-3 animate-slide-in-right overflow-hidden">
-                <div className="flex items-center gap-2 px-1">
-                  <div className="w-2 h-2 bg-cyan-400 rounded-full"></div>
-                  <span className="text-xs font-semibold text-cyan-400 uppercase tracking-widest">After</span>
-                </div>
-                <div className="flex-1 bg-zinc-900 rounded-2xl border border-zinc-800 flex items-center justify-center overflow-hidden shadow-xl">
-                  {histogramLoading ? (
-                    <div className="flex flex-col items-center gap-3">
-                      <div className="w-6 h-6 border-2 border-cyan-500/30 border-t-cyan-500 rounded-full animate-spin"></div>
-                      <span className="text-xs text-zinc-500">Generating histogram…</span>
-                    </div>
-                  ) : processedHistogramUrl ? (
-                    <img src={processedHistogramUrl} alt="After Histogram" className="max-w-full max-h-full object-contain p-4" />
-                  ) : (
-                    <div className="flex flex-col items-center gap-3 text-center px-10">
-                      <FiBarChart2 size={28} className="text-zinc-700" />
-                      <span className="text-xs text-zinc-600 leading-relaxed">Apply any filter first — the processed histogram will appear here automatically.</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-          ) : showCompare && processedPreview ? (
-            // -------- IMAGE COMPARE MODE (Before / After) --------
-            <div className="flex-1 flex gap-0 p-6 overflow-hidden">
-
-              {/* Before Panel */}
-              <div className="flex-1 flex flex-col gap-3 animate-slide-in-left overflow-hidden">
-                <div className="flex items-center gap-2 px-1">
-                  <div className="w-2 h-2 bg-zinc-400 rounded-full"></div>
-                  <span className="text-xs font-semibold text-zinc-300 uppercase tracking-widest">Before</span>
-                </div>
-                <div className="flex-1 bg-zinc-900/60 rounded-2xl border border-zinc-800 flex items-center justify-center overflow-hidden shadow-xl">
-                  <img src={originalPreview} alt="Before" className="max-w-full max-h-full object-contain p-4 drop-shadow-xl" />
-                </div>
-              </div>
-
-              {/* Divider */}
-              <div className="w-px mx-6 bg-zinc-800 self-stretch my-2 shrink-0"></div>
-
-              {/* After Panel */}
-              <div className="flex-1 flex flex-col gap-3 animate-slide-in-right overflow-hidden">
-                <div className="flex items-center gap-2 px-1">
-                  <div className="w-2 h-2 bg-cyan-400 rounded-full"></div>
-                  <span className="text-xs font-semibold text-cyan-400 uppercase tracking-widest">After</span>
-                </div>
-                <div className="flex-1 bg-zinc-900/60 rounded-2xl border border-zinc-800 flex items-center justify-center overflow-hidden shadow-xl">
-                  <img src={processedPreview} alt="After" className="max-w-full max-h-full object-contain p-4 drop-shadow-xl" />
-                </div>
-              </div>
-            </div>
-
-          ) : (
-          <div className="flex-1 flex p-8 overflow-hidden items-center justify-center relative">
-            
-            {loading && (
-              <div className="absolute top-4 right-4 z-50 bg-zinc-900/80 backdrop-blur-md px-3 py-1.5 rounded-full border border-zinc-800 flex items-center gap-2 shadow-xl">
-                <div className="w-2 h-2 bg-cyan-500 rounded-full animate-pulse"></div>
-                <span className="text-[10px] text-zinc-300 font-medium tracking-wide uppercase">Processing</span>
-              </div>
-            )}
-
-            <div 
-              {...getRootProps()} 
-              className={`relative w-full h-full rounded-none flex flex-col items-center justify-center transition-all overflow-hidden
-                ${!originalPreview && 'border-2 border-dashed border-zinc-700/50 hover:border-zinc-500 bg-zinc-900/20 backdrop-blur-sm m-8 rounded-2xl'}
-                ${isDragActive ? 'border-cyan-500 bg-cyan-500/5 scale-[1.01]' : ''}
-              `}
-            >
-              <input {...getInputProps()} />
-              
-              {originalPreview ? (
-                <div ref={canvasRef} className="w-full h-full flex items-center justify-center overflow-hidden relative">
-                  
-                  {isCropMode ? (
-                    <ReactCrop 
-                      crop={cropState} 
-                      onChange={(c) => setParams(p => ({
-                        ...p, 
-                        cropX: Math.round(c.x), 
-                        cropY: Math.round(c.y), 
-                        cropWidth: Math.round(c.width), 
-                        cropHeight: Math.round(c.height)
-                      }))}
-                      className="max-h-full max-w-full shadow-2xl"
-                    >
-                      <img src={currentImageSrc} alt="Canvas" className="max-h-full max-w-full object-contain pointer-events-none" />
-                    </ReactCrop>
-                  ) : (
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                      {/* Universal Interactive Canvas Mode */}
-                      <Rnd
-                        size={{ width: params.resizeWidth, height: params.resizeHeight }}
-                        position={{ x: params.moveX, y: params.moveY }}
-                        onDragStop={(e, d) => {
-                          if (!canvasRef.current) return;
-                          const { clientWidth: cw, clientHeight: ch } = canvasRef.current;
-                          const margin = 48; // px — minimum edge that must stay visible
-                          const clampedX = clamp(d.x, -(params.resizeWidth - margin), cw - margin);
-                          const clampedY = clamp(d.y, -(params.resizeHeight - margin), ch - margin);
-                          setParams(p => ({ ...p, moveX: clampedX, moveY: clampedY }));
-                        }}
-                        onResizeStop={(e, direction, ref, delta, position) => {
-                          if (!canvasRef.current) return;
-                          const { clientWidth: cw, clientHeight: ch } = canvasRef.current;
-                          const newW = clamp(parseInt(ref.style.width, 10), 48, cw);
-                          const newH = clamp(parseInt(ref.style.height, 10), 48, ch);
-                          const clampedX = clamp(position.x, 0, cw - newW);
-                          const clampedY = clamp(position.y, 0, ch - newH);
-                          setParams(p => ({
-                            ...p,
-                            resizeWidth: newW,
-                            resizeHeight: newH,
-                            moveX: clampedX,
-                            moveY: clampedY,
-                          }));
-                        }}
-                        bounds="parent"
-                        className="pointer-events-auto border border-transparent hover:border-cyan-500/40 focus-within:border-cyan-500 transition-colors group shadow-2xl"
-                      >
-                        <img src={currentImageSrc} alt="Workspace" className="w-full h-full object-fill pointer-events-none" />
-                        
-                        {/* Custom Resize Handles (visible on hover) */}
-                        <div className="absolute -top-1.5 -left-1.5 w-3 h-3 bg-white border border-cyan-500 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
-                        <div className="absolute -top-1.5 -right-1.5 w-3 h-3 bg-white border border-cyan-500 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
-                        <div className="absolute -bottom-1.5 -left-1.5 w-3 h-3 bg-white border border-cyan-500 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
-                        <div className="absolute -bottom-1.5 -right-1.5 w-3 h-3 bg-white border border-cyan-500 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
-                      </Rnd>
-                    </div>
-                  )}
-                  
-                  <button 
-                    onClick={handleRemoveImage}
-                    className="absolute top-4 right-4 z-50 bg-zinc-900/80 hover:bg-red-500/90 backdrop-blur-md p-2 rounded-md text-zinc-400 hover:text-white transition-all border border-zinc-800 shadow-lg"
-                    title="Clear Workspace"
-                  >
-                    <FiTrash2 size={14} />
-                  </button>
-                </div>
-              ) : (
-                <div className="text-center pointer-events-none">
-                  <div className="w-20 h-20 rounded-2xl bg-zinc-900 flex items-center justify-center mx-auto mb-5 border border-zinc-800/50 shadow-2xl drop-shadow-[0_0_15px_rgba(0,0,0,0.5)]">
-                    <FiImage size={32} className="text-zinc-500" />
-                  </div>
-                  <h3 className="text-base font-semibold text-zinc-200 mb-2">Drop an image here</h3>
-                  <p className="text-xs text-zinc-500 max-w-[220px] mx-auto leading-relaxed">
-                    Paste from clipboard, drag a file, or click to browse.
-                  </p>
-                </div>
-              )}
-            </div>
-
-          </div>
-          )} {/* end histogram ternary */}
-        </main>
-
-        {/* --- RIGHT SIDEBAR (PROPERTIES PANEL) --- */}
         <aside className="w-64 border-l border-zinc-800 bg-[#121214] shrink-0 flex flex-col z-20 shadow-2xl relative">
           <div className="h-12 border-b border-zinc-800/50 flex items-center px-4 shrink-0 bg-zinc-900/30">
             <h2 className="text-xs font-semibold text-zinc-300 flex items-center gap-2">
               <FiSettings size={14} className="text-zinc-500" /> Properties
             </h2>
           </div>
-          
+
           {activeTool ? (
-            <PropertiesPanel 
-              tool={activeTool} 
-              params={params} 
+            <PropertiesPanel
+              tool={activeTool}
+              params={params}
               setParams={setParams}
               canvasRef={canvasRef}
               onApply={handleApply}
@@ -1133,61 +327,9 @@ function App() {
             </div>
           )}
         </aside>
-
       </div>
 
-      <style dangerouslySetInnerHTML={{__html: `
-        /* Custom Scrollbar for sidebars */
-        .custom-scrollbar::-webkit-scrollbar {
-          width: 4px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-          background: transparent;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: #27272a; 
-          border-radius: 4px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: #3f3f46; 
-        }
-
-        /* Checkerboard Canvas Background */
-        .checkerboard {
-          background-color: #09090b;
-          background-image: 
-            linear-gradient(45deg, #121214 25%, transparent 25%), 
-            linear-gradient(-45deg, #121214 25%, transparent 25%), 
-            linear-gradient(45deg, transparent 75%, #121214 75%), 
-            linear-gradient(-45deg, transparent 75%, #121214 75%);
-          background-size: 20px 20px;
-          background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
-        }
-
-        /* Histogram panel slide-in animations */
-        @keyframes slide-in-left {
-          from { opacity: 0; transform: translateX(-24px); }
-          to   { opacity: 1; transform: translateX(0); }
-        }
-        @keyframes slide-in-right {
-          from { opacity: 0; transform: translateX(24px); }
-          to   { opacity: 1; transform: translateX(0); }
-        }
-        .animate-slide-in-left  { animation: slide-in-left  0.4s cubic-bezier(0.22,1,0.36,1) both; }
-        .animate-slide-in-right { animation: slide-in-right 0.4s cubic-bezier(0.22,1,0.36,1) both; }
-
-        /* Override ReactCrop styles to match dark theme */
-        .react-crop__crop-selection {
-          border: 1px solid #22d3ee !important;
-          background-color: rgba(34, 211, 238, 0.05) !important;
-        }
-        .react-crop__drag-handle {
-          background-color: #fff !important;
-          border: 1px solid #22d3ee !important;
-          width: 8px !important;
-          height: 8px !important;
-        }
-      `}} />
+      <AppStyles />
     </div>
   );
 }
