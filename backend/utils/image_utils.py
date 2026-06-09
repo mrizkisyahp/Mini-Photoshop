@@ -57,7 +57,7 @@ def bgr_to_grayscale(img: np.ndarray) -> bytes:
     g = img[:, :, 1].astype(np.float32)
     r = img[:, :, 2].astype(np.float32)
 
-    gray = 0.114 * b + 0.587 * g + 0.229 * r
+    gray = 0.114 * b + 0.587 * g + 0.299 * r
 
     return np.clip(gray, 0, 255).astype(np.uint8)
 

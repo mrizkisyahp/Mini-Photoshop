@@ -8,6 +8,7 @@ import CanvasArea from './components/CanvasArea';
 import CategorySidebar from './components/CategorySidebar';
 import Header from './components/Header';
 import PropertiesPanel from './components/PropertiesPanel';
+import ChatbotWidget from './components/ChatbotWidget';
 import ToolSidebar from './components/ToolSidebar';
 import FlowCanvas from './components/FlowCanvas';
 import { buildBackendParams } from './utils/imageProcessing';
@@ -49,6 +50,8 @@ export default function App() {
   const [histogramData, setHistogramData] = useState(null);
   const [cnnResult, setCnnResult] = useState(null);
   const [compressionStats, setCompressionStats] = useState(null);
+  const [autoIdentifyResult, setAutoIdentifyResult] = useState('');
+  const [autoIdentifyEnabled, setAutoIdentifyEnabled] = useState(false);
 
   // FlowCanvas and Sidebar resizing
   const [flowCanvasHeight, setFlowCanvasHeight] = useState(160);
@@ -62,7 +65,7 @@ export default function App() {
     onDrop: async (acceptedFiles) => {
       if (acceptedFiles.length === 0) return;
       let file = acceptedFiles[0];
-      
+
       // If it's a custom binary format, intercept and decode first
       if (file.name.endsWith('.rle') || file.name.endsWith('.huff')) {
         setLoading(true);
@@ -77,11 +80,23 @@ export default function App() {
         }
         setLoading(false);
       }
-      
+
       const imgUrl = URL.createObjectURL(file);
-      
+
       const img = new Image();
       img.onload = () => {
+        // Calculate an appropriate initial zoom so large images fit the canvas automatically
+        let initialZoom = 100;
+        const estCanvasWidth = window.innerWidth - leftSidebarWidth - rightSidebarWidth - 100;
+        const estCanvasHeight = window.innerHeight - flowCanvasHeight - 150;
+
+        if (img.width > estCanvasWidth || img.height > estCanvasHeight) {
+          const scaleX = estCanvasWidth / img.width;
+          const scaleY = estCanvasHeight / img.height;
+          // Scale down to fit, maintaining minimum zoom limit
+          initialZoom = Math.max(MIN_ZOOM, Math.floor(Math.min(scaleX, scaleY) * 100));
+        }
+
         setOriginParams({
           ...defaultParams,
           resizeWidth: img.width,
@@ -95,10 +110,20 @@ export default function App() {
         setSelectedNodeId('origin');
         setUndoStack([]);
         setRedoStack([]);
-        setZoom(100);
+        setZoom(initialZoom);
         setHistogramData(null);
         setCnnResult(null);
-        setCompressionStats(null);
+        setAutoIdentifyResult('');
+        if (autoIdentifyEnabled) {
+          setAutoIdentifyResult('Identifying...');
+          sendDataRequest('/api/chatbot/identify', file).then(res => {
+            if (res && res.reply) setAutoIdentifyResult(res.reply);
+            else setAutoIdentifyResult('');
+          }).catch(err => {
+            console.error("Auto identify failed", err);
+            setAutoIdentifyResult('');
+          });
+        }
       };
       img.src = imgUrl;
     },
@@ -225,6 +250,7 @@ export default function App() {
     setHistogramData(null);
     setCnnResult(null);
     setCompressionStats(null);
+    setAutoIdentifyResult('');
     setZoom(100);
   };
 
@@ -263,7 +289,7 @@ export default function App() {
 
     const mimeMap = { png: 'image/png', jpeg: 'image/jpeg', bmp: 'image/bmp' };
     const extMap = { png: 'png', jpeg: 'jpg', bmp: 'bmp' };
-    
+
     // Convert to target format using canvas so we get an exact Blob for download
     const src = processedPreview || originalPreview;
     const img = new Image();
@@ -315,7 +341,8 @@ export default function App() {
       setLoading(true);
       try {
         const fileToAnalyze = processedBlob ? new File([processedBlob], 'image.jpg') : originalFile;
-        const data = await sendDataRequest(endpoint, fileToAnalyze, {});
+        const backendParams = buildBackendParams(currentActiveTool.id, currentParams);
+        const data = await sendDataRequest(endpoint, fileToAnalyze, backendParams);
         setCnnResult(data);
       } catch (e) { alert(e.response?.data?.detail || e.message); console.error(e); } finally { setLoading(false); }
       return;
@@ -474,6 +501,8 @@ export default function App() {
         onZoomIn={handleZoomIn}
         canZoomOut={zoom > MIN_ZOOM}
         canZoomIn={zoom < MAX_ZOOM}
+        autoIdentifyEnabled={autoIdentifyEnabled}
+        setAutoIdentifyEnabled={setAutoIdentifyEnabled}
       />
 
       <div className="flex flex-1 overflow-hidden">
@@ -490,9 +519,9 @@ export default function App() {
             onSelectTool={setSelectedTool}
             width={leftSidebarWidth}
           />
-          <div 
+          <div
             className="w-1.5 h-full cursor-col-resize bg-zinc-800/50 hover:bg-cyan-500/50 transition-colors absolute -right-0.5 z-50"
-            onMouseDown={startResizeLeftSidebar} 
+            onMouseDown={startResizeLeftSidebar}
           />
         </div>
 
@@ -516,6 +545,7 @@ export default function App() {
             zoom={zoom}
             onZoomIn={handleZoomIn}
             onZoomOut={handleZoomOut}
+            autoIdentifyResult={autoIdentifyResult}
           />
           {originalFile && (
             <div className="relative shrink-0 flex flex-col">
@@ -537,9 +567,9 @@ export default function App() {
         </div>
 
         <div className="bg-zinc-900 border-l border-zinc-800 flex flex-col relative z-20 shrink-0" style={{ width: rightSidebarWidth }}>
-          <div 
+          <div
             className="w-1.5 h-full cursor-col-resize bg-zinc-800/50 hover:bg-cyan-500/50 transition-colors absolute top-0 -left-0.5 z-50"
-            onMouseDown={startResizeRightSidebar} 
+            onMouseDown={startResizeRightSidebar}
           />
           <div className="h-12 border-b border-zinc-800/50 flex items-center px-4 shrink-0 bg-zinc-900/30">
             <h2 className="text-xs font-semibold text-zinc-300 flex items-center gap-2">
@@ -570,6 +600,7 @@ export default function App() {
         </div>
       </div>
 
+      <ChatbotWidget currentImageFile={originalFile} />
       <AppStyles />
     </div>
   );

@@ -21,6 +21,10 @@ export function buildBackendParams(toolId, params) {
       return { angle: params.rotate };
     case 'flip':
       return { mode: params.flipMode };
+    case 'move':
+      return { tx: params.moveX, ty: params.moveY };
+    case 'resize':
+      return { width: params.resizeWidth, height: params.resizeHeight };
     case 'crop':
       return { x: params.cropX, y: params.cropY, width: params.cropWidth, height: params.cropHeight };
     default:

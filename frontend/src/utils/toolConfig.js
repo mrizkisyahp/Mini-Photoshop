@@ -112,9 +112,9 @@ export const toolGroups = [
     id: 'cnn',
     name: 'CNN',
     icon: FiTarget,
-    description: 'Leverage Convolutional Neural Networks to automatically locate, classify, and identify objects in the image.',
+    description: 'Leverage Convolutional Neural Networks to classify images across multiple datasets.',
     tools: [
-      { id: 'cnn_detect', label: 'Object Recognition', icon: FiTarget, description: 'Run a deep learning model to detect and classify complex visual classes (e.g., humans or animals).' },
+      { id: 'cnn_detect', label: 'Object Recognition', icon: FiTarget, description: 'Run a deep learning model to classify Fruits, Animals, or Intel Images using scratch or pre-trained models.' },
     ],
   },
 ];
@@ -150,6 +150,9 @@ export const defaultParams = {
   segRegions: 3,
   // Compression
   quantBits: 4,
+  // CNN
+  cnnDataset: 'fruits',
+  cnnModelType: 'scratch',
 };
 
 // !!!!!!!!!!!!!!ENDPOINT!!!!!!!!!!!!!!

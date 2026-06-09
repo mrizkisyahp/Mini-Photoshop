@@ -26,6 +26,8 @@ export default function Header({
   onZoomIn,
   canZoomOut,
   canZoomIn,
+  autoIdentifyEnabled,
+  setAutoIdentifyEnabled,
 }) {
   const iconButtonClass = "p-1.5 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:text-zinc-400 disabled:hover:bg-transparent";
 
@@ -46,6 +48,17 @@ export default function Header({
       </div>
 
       <div className="flex items-center gap-3">
+        <button
+          onClick={() => setAutoIdentifyEnabled(v => !v)}
+          className={`px-3 py-1.5 rounded text-[10px] font-semibold transition-all border uppercase tracking-wider ${
+            autoIdentifyEnabled
+              ? 'bg-cyan-500/10 text-cyan-400 border-cyan-500/40'
+              : 'bg-zinc-800/50 text-zinc-500 border-zinc-700 hover:text-zinc-300'
+          }`}
+          title="Toggle Auto-Identify AI on image drop"
+        >
+          {autoIdentifyEnabled ? 'AI Detect: ON' : 'AI Detect: OFF'}
+        </button>
         {originalFile && (
           <div className="flex items-center gap-2 text-[10px] text-zinc-500 font-mono hidden md:flex">
             {loading && <FiActivity className="animate-spin text-cyan-500" />}

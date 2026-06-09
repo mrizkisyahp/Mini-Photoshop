@@ -373,10 +373,41 @@ export default function PropertiesPanel({ tool, params, setParams, canvasRef, on
         return (
           <div className="flex flex-col gap-4">
             <div className="text-xs text-zinc-400">
-              Detect animal species using TensorFlow CNN. Supports: cat, dog, elephant, horse, lion.
+              Run object recognition across different datasets using Scratch or Pre-trained models.
             </div>
+            
+            <div className="flex flex-col gap-2">
+              <label className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">Dataset</label>
+              <select
+                value={params.cnnDataset}
+                onChange={(e) => setParams(p => ({ ...p, cnnDataset: e.target.value }))}
+                className="w-full bg-zinc-900 border border-zinc-700 text-zinc-200 text-xs rounded p-2 focus:border-cyan-500 outline-none"
+              >
+                <option value="fruits">Fruits (Apple, Banana, Grape, Mango, Strawberry)</option>
+                <option value="intel">Intel Image (Buildings, Sea, Glacier, Mountains, Forest, Streets)</option>
+                <option value="animals">Animals (Lion, Cat, Dog, Horse, Elephant)</option>
+              </select>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <label className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">Model Type</label>
+              <select
+                value={params.cnnModelType}
+                onChange={(e) => setParams(p => ({ ...p, cnnModelType: e.target.value }))}
+                className="w-full bg-zinc-900 border border-zinc-700 text-zinc-200 text-xs rounded p-2 focus:border-cyan-500 outline-none"
+              >
+                <option value="scratch">Scratch Model</option>
+                <option value="pretrained">Pre-trained Model</option>
+              </select>
+            </div>
+
             {cnnResult && (
               <div className="bg-zinc-900 border border-zinc-700 p-4 rounded-lg flex flex-col gap-3">
+                {cnnResult.ood_warning && (
+                  <div className="bg-orange-500/10 border border-orange-500/30 text-orange-400 text-[10px] p-2.5 rounded text-center leading-relaxed font-semibold">
+                    LOW CONFIDENCE: This image may be Out of Distribution (not in the dataset).
+                  </div>
+                )}
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-zinc-500">Detected:</span>
                   <span className="text-sm font-bold text-cyan-400 uppercase tracking-widest">{cnnResult.label}</span>

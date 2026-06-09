@@ -32,14 +32,21 @@ def histogram_equalization(img: np.ndarray) -> np.ndarray:
     # hitung cdf
     cdf = hist.cumsum()
     
-    # normalisasi cdf, gunakan masking untuk mengabaikan nilai 0 agar pembagian tidak error
-    cdf_m = np.ma.masked_equal(cdf, 0)
+    # cari nilai minimum non-zero dalam cdf untuk normalisasi
+    cdf_min = cdf[cdf > 0].min()
+    total_pixels = v.size
     
-    # isi kembali yang di-mask dengan angka 0
-    cdf_final = np.ma.filled(cdf_m, 0).astype(np.uint8)
+    # normalisasi CDF ke rentang [0, 255] menggunakan rumus standar histogram equalization
+    # formula: (cdf(v) - cdf_min) / (total_pixels - cdf_min) * 255
+    cdf_normalized = np.zeros(256, dtype=np.uint8)
+    denom = total_pixels - cdf_min
+    if denom > 0:
+        for i in range(256):
+            if cdf[i] > 0:
+                cdf_normalized[i] = round((cdf[i] - cdf_min) / denom * 255)
     
     # pemetaan nilai piksel lama ke nilai piksel baru berdasarkan index cdf
-    v_eq = cdf_final[v]
+    v_eq = cdf_normalized[v]
     
     # gabungkan kembali channel H, S, V yang sudah di-equalize
     hsv_eq = cv2.merge((h, s, v_eq))

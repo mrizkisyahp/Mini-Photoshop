@@ -1,3 +1,6 @@
+import os
+os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -10,6 +13,7 @@ from routers.segmentation import router as router_segmentation
 from routers.histogram import router as router_histogram
 from routers.cnn import router as router_cnn
 from routers.compression import router as router_compression
+from routers.chatbot import router as router_chatbot
 
 app = FastAPI()
 
@@ -30,3 +34,4 @@ app.include_router(router_segmentation)
 app.include_router(router_histogram)
 app.include_router(router_cnn)
 app.include_router(router_compression)
+app.include_router(router_chatbot)

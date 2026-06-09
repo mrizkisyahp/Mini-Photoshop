@@ -22,6 +22,7 @@ export default function CanvasArea({
   zoom,
   onZoomIn,
   onZoomOut,
+  autoIdentifyResult,
 }) {
   const zoomScale = zoom / 100;
   const scaledResizeWidth = params.resizeWidth * zoomScale;
@@ -88,6 +89,19 @@ export default function CanvasArea({
         </div>
       ) : (
         <div className="flex-1 flex p-8 overflow-hidden items-center justify-center relative">
+          
+          {/* Auto Identify Badge */}
+          {autoIdentifyResult && (
+            <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-50 pointer-events-none">
+              <div className="bg-zinc-900/80 backdrop-blur-md border border-zinc-700/50 shadow-2xl rounded-full px-5 py-2 flex items-center gap-3 animate-fade-in">
+                <div className="w-2 h-2 rounded-full bg-cyan-500 animate-pulse"></div>
+                <span className="text-xs font-medium text-zinc-200">
+                  This image is: <strong className="text-cyan-400 capitalize">{autoIdentifyResult}</strong>
+                </span>
+              </div>
+            </div>
+          )}
+
           {loading && (
             <div className="absolute top-4 right-4 z-50 bg-zinc-900/80 backdrop-blur-md px-3 py-1.5 rounded-full border border-zinc-800 flex items-center gap-2 shadow-xl">
               <div className="w-2 h-2 bg-cyan-500 rounded-full animate-pulse"></div>

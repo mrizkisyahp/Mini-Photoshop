@@ -1,46 +1,74 @@
 import os
 import cv2
 import numpy as np
+import json
 
-# Lazy loading to prevent server crash if not installed
-model = None
+# Lazy loading dictionary to cache multiple models
+loaded_models = {}
 
-def load_model():
-    global model
-    if model is not None:
-        return model
+def load_model(model_path):
+    global loaded_models
+    if model_path in loaded_models:
+        return loaded_models[model_path]
 
     try:
         import tensorflow as tf
     except ImportError:
         raise Exception("TensorFlow is not installed on the backend server. Cannot run CNN inference.")
 
-    model_path = os.path.join(os.path.dirname(__file__), "..", "cnn", "saved_model")
     if not os.path.exists(model_path):
-        raise Exception("CNN model not found. Please ensure backend/cnn/saved_model exists.")
+        raise Exception(f"CNN model not found: {model_path}")
 
     try:
-        if hasattr(tf.keras.layers, "TFSMLayer"):
-            model = tf.keras.layers.TFSMLayer(model_path, call_endpoint='serving_default')
-        else:
-            model = tf.keras.models.load_model(model_path)
+        model = tf.keras.models.load_model(model_path)
+        loaded_models[model_path] = model
     except Exception as e:
         raise Exception(f"Failed to load CNN model: {str(e)}")
         
     return model
 
-def predict_animal(img: np.ndarray) -> dict:
-    """Predicts the animal class using the CNN model."""
-    classes = ["cat", "dog", "elephant", "horse", "lion"]
+def predict_image(img: np.ndarray, dataset: str = "fruits", model_type: str = "scratch") -> dict:
+    """Predicts the image class using the CNN model."""
+    
+    if dataset == "fruits" and model_type == "scratch":
+        model_path = os.path.join(os.path.dirname(__file__), "..", "cnn", "scratch", "fruits.keras")
+        labels_path = os.path.join(os.path.dirname(__file__), "..", "cnn", "scratch", "realworld_fruits5_display_names.json")
+    elif dataset == "fruits" and model_type == "pretrained":
+        model_path = os.path.join(os.path.dirname(__file__), "..", "cnn", "pretrained", "fruits_pretrained_best.keras")
+        labels_path = os.path.join(os.path.dirname(__file__), "..", "cnn", "pretrained", "fruits_class_names.json")
+    elif dataset == "intel" and model_type == "scratch":
+        model_path = os.path.join(os.path.dirname(__file__), "..", "cnn", "scratch", "intel_scratch_best.keras")
+        labels_path = os.path.join(os.path.dirname(__file__), "..", "cnn", "scratch", "intel_class_names.json")
+    elif dataset == "intel" and model_type == "pretrained":
+        model_path = os.path.join(os.path.dirname(__file__), "..", "cnn", "pretrained", "intel_pretrained_best.keras")
+        labels_path = os.path.join(os.path.dirname(__file__), "..", "cnn", "pretrained", "intel_class_names.json")
+    elif dataset == "animals" and model_type == "scratch":
+        model_path = os.path.join(os.path.dirname(__file__), "..", "cnn", "scratch", "animals_scratch_best.keras")
+        labels_path = os.path.join(os.path.dirname(__file__), "..", "cnn", "scratch", "animals_class_names.json")
+    elif dataset == "animals" and model_type == "pretrained":
+        model_path = os.path.join(os.path.dirname(__file__), "..", "cnn", "pretrained", "animals_pretrained_best.keras")
+        labels_path = os.path.join(os.path.dirname(__file__), "..", "cnn", "pretrained", "animals_class_names.json")
+    else:
+        # Return a stubbed response for everything else since they are not implemented yet.
+        return {
+            "label": "Not Implemented",
+            "confidence": 1.0,
+            "scores": {
+                "Not Implemented": 1.0
+            }
+        }
+    
+    if not os.path.exists(labels_path):
+        raise Exception(f"Class labels not found: {labels_path}")
+        
+    with open(labels_path, "r") as f:
+        classes = json.load(f)
     
     try:
-        current_model = load_model()
+        current_model = load_model(model_path)
         import tensorflow as tf
         
         # Preprocess image
-        # The model likely expects RGB and a certain size, let's assume 150x150 or 224x224
-        # Since we don't know the exact size from README, we might check the model's input shape
-        # But we can try 224x224 which is standard, or check input_shape dynamically
         input_shape = getattr(current_model, 'input_shape', None)
         if input_shape and len(input_shape) >= 3 and input_shape[1] is not None:
             target_size = (input_shape[1], input_shape[2])
@@ -53,8 +81,8 @@ def predict_animal(img: np.ndarray) -> dict:
         # Resize
         resized = cv2.resize(img_rgb, target_size)
         
-        # Normalize to [0, 1] assuming standard keras behavior
-        img_normalized = resized.astype(np.float32) / 255.0
+        # Both Scratch and Pretrained Kaggle models were trained on [0, 255] directly
+        img_normalized = resized.astype(np.float32)
         
         # Add batch dimension
         img_batch = np.expand_dims(img_normalized, axis=0)
@@ -79,7 +107,8 @@ def predict_animal(img: np.ndarray) -> dict:
         return {
             "label": label,
             "confidence": confidence,
-            "scores": scores
+            "scores": scores,
+            "ood_warning": confidence < 0.60
         }
         
     except Exception as e:
