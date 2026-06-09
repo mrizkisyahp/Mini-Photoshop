@@ -19,6 +19,16 @@ async def read_image_as_array(file: UploadFile) -> np.ndarray:
 
     return img
 
+async def read_image_and_size(file: UploadFile) -> tuple[np.ndarray, int]:
+    """
+    Reads an uploaded file and returns the NumPy array along with its exact byte size.
+    """
+    image_bytes = await file.read()
+    size = len(image_bytes)
+    nparr = np.frombuffer(image_bytes, np.uint8)
+    img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+    return img, size
+
 
 def encode_image_to_bytes(img: np.ndarray, extension: str = ".jpg") -> bytes:
     """

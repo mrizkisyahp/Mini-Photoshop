@@ -8,6 +8,8 @@ from routers.edge import router as router_edge
 from routers.color import router as router_color
 from routers.segmentation import router as router_segmentation
 from routers.histogram import router as router_histogram
+from routers.cnn import router as router_cnn
+from routers.compression import router as router_compression
 
 app = FastAPI()
 
@@ -16,6 +18,7 @@ app.add_middleware(
     allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 app.include_router(router_enhancement)
@@ -25,3 +28,5 @@ app.include_router(router_edge)
 app.include_router(router_color)
 app.include_router(router_segmentation)
 app.include_router(router_histogram)
+app.include_router(router_cnn)
+app.include_router(router_compression)

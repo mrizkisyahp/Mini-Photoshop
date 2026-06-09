@@ -2,7 +2,8 @@ import {
   FiImage, FiSliders, FiLayout, FiActivity, FiScissors, FiMove,
   FiSun, FiCrosshair, FiDroplet, FiBarChart2, FiRotateCw, FiColumns, FiMaximize, FiCrop,
   FiMoon, FiAperture, FiBarChart, FiTrendingUp, FiMinimize2, FiMaximize2, FiCpu,
-  FiFilter, FiZap, FiGrid, FiTarget, FiPieChart, FiCode, FiBox, FiCircle, FiTriangle, FiWifi
+  FiFilter, FiZap, FiGrid, FiTarget, FiPieChart, FiCode, FiBox, FiCircle, FiTriangle, FiWifi,
+  FiLayers
 } from 'react-icons/fi';
 
 export const toolGroups = [
@@ -95,16 +96,16 @@ export const toolGroups = [
   },
   {
     id: 'compression',
-    name: 'Compression',
+    name: 'Compression Analysis',
     icon: FiScissors,
-    description: 'Reduce the storage footprint using lossy quantization, standard JPEG simulation, or lossless encoding algorithms.',
+    description: 'Analyze real export sizes, apply quantization preprocessing, or simulate lossless encoding algorithms.',
     tools: [
-      { id: 'jpeg', label: 'JPEG Quality', icon: FiImage, description: 'Simulate lossy JPEG compression using block-based discrete cosine transform (DCT) and quantization.' },
-      { id: 'rle', label: 'RLE', icon: FiCpu, description: 'Apply Run-Length Encoding to compress contiguous sequences of identical pixel values losslessly.' },
-      { id: 'huffman', label: 'Huffman', icon: FiCode, description: 'Use variable-length entropy coding to compress symbols based on their statistical frequency.' },
-      { id: 'arithmetic', label: 'Arithmetic', icon: FiCode, description: 'Lossless compression that maps a stream of symbols to a single high-precision decimal range.' },
-      { id: 'lzw', label: 'LZW', icon: FiCode, description: 'Compress images losslessly using dictionary-based string matching (Lempel-Ziv-Welch).' },
-      { id: 'quantization', label: 'Quantization', icon: FiTarget, description: 'Reduce the total number of colors by mapping pixel intensities into a lower bit-depth.' },
+      { id: 'jpeg', label: 'JPEG Quality', icon: FiImage, description: 'Simulate lossy JPEG compression using block-based discrete cosine transform (DCT) and quantization.', toolType: 'export' },
+      { id: 'quantization', label: 'Quantization', icon: FiTarget, description: 'Reduce the total number of colors by mapping pixel intensities into a lower bit-depth.', toolType: 'preprocess' },
+      { id: 'rle', label: 'RLE', icon: FiCpu, description: 'Apply Run-Length Encoding to compress contiguous sequences of identical pixel values losslessly.', toolType: 'simulation' },
+      { id: 'huffman', label: 'Huffman', icon: FiCode, description: 'Use variable-length entropy coding to compress symbols based on their statistical frequency.', toolType: 'simulation' },
+      { id: 'arithmetic', label: 'Arithmetic', icon: FiCode, description: 'Lossless compression that maps a stream of symbols to a single high-precision decimal range.', toolType: 'simulation' },
+      { id: 'lzw', label: 'LZW', icon: FiCode, description: 'Compress images losslessly using dictionary-based string matching (Lempel-Ziv-Welch).', toolType: 'simulation' },
     ],
   },
   {
@@ -156,6 +157,7 @@ export const toolEndpointMap = {
   // Enhancement
   brightness: '/api/enhancement/brightness-contrast',
   sharpen: '/api/enhancement/sharpen',
+  blur: '/api/enhancement/blur',
   clahe: '/api/enhancement/histogram-equalization',
   // Restoration
   restore_blur: '/api/restoration/gaussian-blur',

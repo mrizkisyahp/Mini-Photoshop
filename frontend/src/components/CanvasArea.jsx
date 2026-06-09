@@ -4,11 +4,7 @@ import { Rnd } from 'react-rnd';
 import { clamp } from '../utils/canvasHelpers';
 
 export default function CanvasArea({
-  isHistogramMode,
   originalFile,
-  histogramLoading,
-  originalHistogramUrl,
-  processedHistogramUrl,
   showCompare,
   processedPreview,
   originalPreview,
@@ -24,6 +20,8 @@ export default function CanvasArea({
   params,
   onRemoveImage,
   zoom,
+  onZoomIn,
+  onZoomOut,
 }) {
   const zoomScale = zoom / 100;
   const scaledResizeWidth = params.resizeWidth * zoomScale;
@@ -31,54 +29,40 @@ export default function CanvasArea({
   const scaledMoveX = params.moveX * zoomScale;
   const scaledMoveY = params.moveY * zoomScale;
 
+  const handleWheel = (e) => {
+    if (!originalFile) return;
+
+    let newZoom = zoom;
+    if (e.deltaY < 0) {
+      newZoom = Math.min(300, zoom + 10);
+      onZoomIn();
+    } else if (e.deltaY > 0) {
+      newZoom = Math.max(25, zoom - 10);
+      onZoomOut();
+    }
+
+    if (newZoom !== zoom && !isCropMode) {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const mx = e.clientX - rect.left;
+      const my = e.clientY - rect.top;
+
+      const z1 = zoom / 100;
+      const z2 = newZoom / 100;
+
+      const newMoveX = params.moveX + mx * (1 / z2 - 1 / z1);
+      const newMoveY = params.moveY + my * (1 / z2 - 1 / z1);
+
+      setParams(p => ({
+        ...p,
+        moveX: newMoveX,
+        moveY: newMoveY
+      }));
+    }
+  };
+
   return (
-    <main className="flex-1 relative flex flex-col min-w-0 bg-[#09090b] checkerboard">
-      {isHistogramMode && originalFile ? (
-        <div className="flex-1 flex gap-0 p-6 overflow-hidden">
-          <div className="flex-1 flex flex-col gap-3 animate-slide-in-left overflow-hidden">
-            <div className="flex items-center gap-2 px-1">
-              <div className="w-2 h-2 bg-zinc-400 rounded-full"></div>
-              <span className="text-xs font-semibold text-zinc-300 uppercase tracking-widest">Before</span>
-            </div>
-            <div className="flex-1 bg-zinc-900 rounded-2xl border border-zinc-800 flex items-center justify-center overflow-hidden shadow-xl">
-              {histogramLoading ? (
-                <div className="flex flex-col items-center gap-3">
-                  <div className="w-6 h-6 border-2 border-cyan-500/30 border-t-cyan-500 rounded-full animate-spin"></div>
-                  <span className="text-xs text-zinc-500">Generating histogramâ€¦</span>
-                </div>
-              ) : originalHistogramUrl ? (
-                <img src={originalHistogramUrl} alt="Before Histogram" className="max-w-full max-h-full object-contain p-4 transition-transform" style={{ transform: `scale(${zoomScale})` }} />
-              ) : (
-                <span className="text-xs text-zinc-600">No histogram available</span>
-              )}
-            </div>
-          </div>
-
-          <div className="w-px mx-6 bg-zinc-800 self-stretch my-2 shrink-0"></div>
-
-          <div className="flex-1 flex flex-col gap-3 animate-slide-in-right overflow-hidden">
-            <div className="flex items-center gap-2 px-1">
-              <div className="w-2 h-2 bg-cyan-400 rounded-full"></div>
-              <span className="text-xs font-semibold text-cyan-400 uppercase tracking-widest">After</span>
-            </div>
-            <div className="flex-1 bg-zinc-900 rounded-2xl border border-zinc-800 flex items-center justify-center overflow-hidden shadow-xl">
-              {histogramLoading ? (
-                <div className="flex flex-col items-center gap-3">
-                  <div className="w-6 h-6 border-2 border-cyan-500/30 border-t-cyan-500 rounded-full animate-spin"></div>
-                  <span className="text-xs text-zinc-500">Generating histogramâ€¦</span>
-                </div>
-              ) : processedHistogramUrl ? (
-                <img src={processedHistogramUrl} alt="After Histogram" className="max-w-full max-h-full object-contain p-4 transition-transform" style={{ transform: `scale(${zoomScale})` }} />
-              ) : (
-                <div className="flex flex-col items-center gap-3 text-center px-10">
-                  <FiBarChart2 size={28} className="text-zinc-700" />
-                  <span className="text-xs text-zinc-600 leading-relaxed">Apply any filter first â€” the processed histogram will appear here automatically.</span>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      ) : showCompare && processedPreview ? (
+    <main className="flex-1 relative flex flex-col min-w-0 bg-[#09090b] checkerboard" onWheel={handleWheel}>
+      {showCompare && processedPreview ? (
         <div className="flex-1 flex gap-0 p-6 overflow-hidden">
           <div className="flex-1 flex flex-col gap-3 animate-slide-in-left overflow-hidden">
             <div className="flex items-center gap-2 px-1">

@@ -11,7 +11,6 @@ export default function Header({
   originalPreview,
   processedPreview,
   loading,
-  isHistogramMode,
   showCompare,
   setShowCompare,
   showExportMenu,
@@ -54,7 +53,7 @@ export default function Header({
           </div>
         )}
 
-        {processedPreview && !isHistogramMode && (
+        {processedPreview && (
           <button
             onClick={() => setShowCompare(v => !v)}
             className={`px-3 py-1.5 rounded text-xs font-medium transition-all border ${

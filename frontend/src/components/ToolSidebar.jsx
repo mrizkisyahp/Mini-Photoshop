@@ -1,6 +1,6 @@
-export default function ToolSidebar({ activeCategory, selectedTool, onSelectTool }) {
+export default function ToolSidebar({ activeCategory, selectedTool, onSelectTool, width }) {
   return (
-    <aside className="w-56 border-r border-zinc-800 bg-[#121214] shrink-0 flex flex-col z-10">
+    <aside className="border-r border-zinc-800 bg-[#121214] shrink-0 flex flex-col z-10 relative" style={{ width }}>
       <div className="px-4 py-3 border-b border-zinc-800/50 space-y-1 bg-zinc-950/20">
         <h2 className="text-xs font-semibold text-zinc-300">{activeCategory?.name}</h2>
         {activeCategory?.description && (
